@@ -9,6 +9,8 @@ import (
 )
 
 func StartServer(config Config) {
+	defer CloseDBPools()
+
 	http.Handle("/", mainHandler(QueryHandler, config.Connections))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", config.PGRest.Port), nil))
 }

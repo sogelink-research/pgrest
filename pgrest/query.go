@@ -11,20 +11,17 @@ import (
 
 	"bufio"
 
-	"github.com/jackc/pgproto3/v2"
-	"github.com/jackc/pgx/v4"
-
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func QueryHandler(w http.ResponseWriter, r *http.Request, connection ConnectionConfig, body RequestBody) error {
-	db, err := pgxpool.Connect(context.Background(), connection.ConnectionString)
+	pool, err := GetDBPool(connection.Name, connection.ConnectionString)
 	if err != nil {
 		return NewAPIError(http.StatusInternalServerError, fmt.Sprintf("Error connecting to database: %v", connection.Name), nil)
 	}
-	defer db.Close()
 
-	rows, err := db.Query(context.Background(), body.Query)
+	rows, err := pool.Query(context.Background(), body.Query)
 	if err != nil {
 		errorMessage := fmt.Sprintf("%v", err.Error())
 		return NewAPIError(http.StatusBadRequest, "Error executing query", &errorMessage)
@@ -56,15 +53,15 @@ func QueryHandler(w http.ResponseWriter, r *http.Request, connection ConnectionC
 
 	switch body.Format {
 	case DefaultFormat:
-		return handleDefault(rows, columns, writer, encoder)
+		return handleFormatDefault(rows, columns, writer, encoder)
 	case DataArrayFormat:
-		return handleDataArray(rows, columns, writer, encoder)
+		return handleFormatDataArray(rows, columns, writer, encoder)
 	}
 
 	return nil
 }
 
-func getColumnNames(columns []pgproto3.FieldDescription) []string {
+func getColumnNames(columns []pgconn.FieldDescription) []string {
 	names := make([]string, len(columns))
 	for i, col := range columns {
 		names[i] = string(col.Name)
@@ -72,7 +69,7 @@ func getColumnNames(columns []pgproto3.FieldDescription) []string {
 	return names
 }
 
-func handleDefault(rows pgx.Rows, columns []string, writer io.Writer, encoder *json.Encoder) error {
+func handleFormatDefault(rows pgx.Rows, columns []string, writer io.Writer, encoder *json.Encoder) error {
 	jsonStart := []byte(`{"data":[`)
 	writer.Write(jsonStart)
 
@@ -94,11 +91,10 @@ func handleDefault(rows pgx.Rows, columns []string, writer io.Writer, encoder *j
 	}
 
 	writer.Write([]byte(`]}`))
-
 	return nil
 }
 
-func handleDataArray(rows pgx.Rows, columns []string, writer io.Writer, encoder *json.Encoder) error {
+func handleFormatDataArray(rows pgx.Rows, columns []string, writer io.Writer, encoder *json.Encoder) error {
 	jsonStart := []byte(`{"data": {`)
 	writer.Write(jsonStart)
 
