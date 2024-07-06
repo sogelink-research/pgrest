@@ -7,13 +7,14 @@ A server written in GO that provides secure and efficient querying of PostgreSQL
 - Supports multiple postgres sources to query
 - GZIP compression support
 - Streaming response to keep memory footprint low
-- DataArray output option to lower transfered bytes and increase speed for many rows
+- DataArray output option to lower transfered bytes and increase speed for lots of rows
 - Server binary size < 10MB, Docker image only 16MB
 
 ## ToDo
 
 - HMAC
 - Brotli compression
+- Ratelimit user
 
 ## Security
 

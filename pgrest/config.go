@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 )
 
 type Config struct {
@@ -14,46 +13,33 @@ type Config struct {
 }
 
 type PGRestConfig struct {
-	Port  int        `json:"port"`
-	Debug bool       `json:"debug"`
-	CORS  CorsConfig `json:"cors"`
+	Port  int  `json:"port"`
+	Debug bool `json:"debug"`
 }
 
 type ConnectionConfig struct {
-	Name             string   `json:"name"`
-	ConnectionString string   `json:"connectionString"`
-	ClientSecrets    []string `json:"clientSecrets"`
+	Name             string       `json:"name"`
+	ConnectionString string       `json:"connectionString"`
+	Users            []UserConfig `json:"users"`
+}
+
+type UserConfig struct {
+	ClientID     string     `json:"clientId"`
+	APIKey       string     `json:"apiKey"`
+	ClientSecret string     `json:"clientSecret"`
+	CORS         CorsConfig `json:"cors"`
 }
 
 type CorsConfig struct {
-	AllowOrigin  string `json:"allowOrigin"`
-	AllowHeaders string `json:"allowHeaders"`
-	AllowMethods string `json:"allowMethods"`
+	AllowOrigins []string `json:"allowOrigins"`
 }
 
-func (c CorsConfig) getHeaders() []string {
-	return strings.Split(c.AllowHeaders, ",")
-}
-
-func (c CorsConfig) getMethodsS() []string {
-	return strings.Split(c.AllowMethods, ",")
-}
-
-func (c CorsConfig) isHeaderAllowed(v string) bool {
-	headers := strings.Split(c.AllowHeaders, ",")
-
-	for _, s := range headers {
-		if v == s {
-			return true
-		}
+func (c CorsConfig) isOriginAllowed(v string) bool {
+	if c.AllowOrigins[0] == "*" {
+		return true
 	}
-	return false
-}
 
-func (c CorsConfig) isMethodAllowed(v string) bool {
-	methods := strings.Split(c.AllowMethods, ",")
-
-	for _, s := range methods {
+	for _, s := range c.AllowOrigins {
 		if v == s {
 			return true
 		}
