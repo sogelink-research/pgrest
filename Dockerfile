@@ -1,11 +1,35 @@
-FROM golang:1.22.5-alpine3.20
-RUN apk add git
+# Stage 1: Build the Go application
+FROM golang:1.22.5-alpine3.20 AS builder
+
+# Install necessary packages for building
+RUN apk update && apk add --no-cache git
+
+# Set the working directory inside the container
 WORKDIR /app
 
-COPY . .
+# Copy go.mod and go.sum files
+COPY go.mod go.sum ./
+
+# Download dependencies
 RUN go mod download
-RUN go build -buildvcs=false -o /pgrest
 
-EXPOSE 8080
+# Copy the source code
+COPY . .
 
-CMD [ "/pgrest" ]
+# Build the Go application for production
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o pgrest .
+
+# Stage 2: Create the final lightweight image
+FROM alpine:3.20.1
+
+# Install ca-certificates to handle HTTPS requests
+RUN apk --no-cache add ca-certificates
+
+# Set the working directory
+WORKDIR /root/
+
+# Copy the Go binary from the builder stage
+COPY --from=builder /app/pgrest .
+
+# Command to run the application
+CMD ["./pgrest"]
