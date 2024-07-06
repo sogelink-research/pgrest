@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/sogelink-research/pgrest/pgrest"
@@ -23,8 +22,8 @@ func initLogger(config pgrest.Config) {
 }
 
 func main() {
+	pgrest.InitializeConfig()
 	config := pgrest.GetConfig()
 	initLogger(config)
-	log.Info(fmt.Sprintf("PGRest started, running on port %v", config.PGRest.Port))
 	pgrest.StartServer(config)
 }

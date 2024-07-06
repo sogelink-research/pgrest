@@ -13,6 +13,7 @@ import (
 func StartServer(config Config) {
 	defer CloseDBPools()
 
+	log.Info(fmt.Sprintf("PGRest started, running on port %v", config.PGRest.Port))
 	http.Handle("/", mainHandler(QueryHandler, config.Connections))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", config.PGRest.Port), nil))
 }

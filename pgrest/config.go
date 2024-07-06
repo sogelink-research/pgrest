@@ -3,9 +3,16 @@ package pgrest
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/fsnotify/fsnotify"
+	log "github.com/sirupsen/logrus"
 )
+
+var config Config
+var configFile = "./config/pgrest.conf"
 
 type Config struct {
 	PGRest      PGRestConfig       `json:"pgrest"`
@@ -47,24 +54,82 @@ func (c CorsConfig) isOriginAllowed(v string) bool {
 	return false
 }
 
-func GetConfig() Config {
-	jsonFile, err := os.Open("./config/pgrest.conf")
+func InitializeConfig() error {
+	err := loadConfig()
 	if err != nil {
-		log.Fatalf("Unable to open config: %v", err.Error())
+		return err
 	}
 
+	go watchConfigChanges()
+
+	return nil
+}
+
+// loadConfig reads and parses the config file.
+func loadConfig() error {
+	jsonFile, err := os.Open(configFile)
+	if err != nil {
+		return err
+	}
 	defer jsonFile.Close()
-	byteValue, _ := io.ReadAll(jsonFile)
-	var config Config
-	err = json.Unmarshal(byteValue, &config)
 
+	byteValue, err := io.ReadAll(jsonFile)
 	if err != nil {
-		log.Fatalf("Unable to parse config: %v", err.Error())
+		return err
 	}
 
+	err = json.Unmarshal(byteValue, &config)
+	if err != nil {
+		return err
+	}
+
+	// Set default values if necessary
 	if config.PGRest.Port == 0 {
 		config.PGRest.Port = 8080
 	}
 
+	return nil
+}
+
+func GetConfig() Config {
 	return config
+}
+
+func watchConfigChanges() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalf("Failed to create file watcher: %v", err)
+	}
+	defer watcher.Close()
+
+	configDir := filepath.Dir(configFile)
+
+	err = watcher.Add(configDir)
+	if err != nil {
+		log.Fatalf("Failed to watch config file changes: %v", err)
+	}
+
+	log.Debugf("Watching for changes in %s", configDir)
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				log.Debugf("Config file changed. Reloading...")
+				time.Sleep(100 * time.Millisecond) // Add a small delay to handle rapid changes
+				err := loadConfig()
+				if err != nil {
+					log.Errorf("Error reloading config: %v", err)
+				}
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Errorf("Error watching config file: %v", err)
+		}
+	}
 }
