@@ -4,37 +4,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func StartServer(config Config) {
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
-
-		var m runtime.MemStats
-		for range ticker.C {
-			runtime.ReadMemStats(&m)
-			fmt.Printf("Used Memory = %v MiB\n", m.Alloc/1024/1024)
-		}
-	}()
-
-	http.Handle("/", middleware(QueryHandler, config.Connections))
+	http.Handle("/", mainHandler(QueryHandler, config.Connections))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", config.PGRest.Port), nil))
 }
 
-func middleware(handler func(http.ResponseWriter, *http.Request, ConnectionConfig, RequestBody), connections []ConnectionConfig) http.Handler {
+func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConfig, RequestBody) error, connections []ConnectionConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var requestBody RequestBody
-		if err := parseRequestBody(r, &requestBody); err != nil {
-			http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
+		if r.Method != http.MethodPost {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
 
-		// in connections find the one with the same name as the database in the request
+		var requestBody RequestBody
+
+		// Decode the incoming JSON payload
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			details := err.Error()
+			apiError := NewAPIError(http.StatusBadRequest, "Invalid request body", &details)
+			handleError(w, apiError)
+			return
+		}
+
+		// Find the requested database connection
 		var connection ConnectionConfig
 		for _, c := range connections {
 			if c.Name == requestBody.Database {
@@ -45,14 +41,31 @@ func middleware(handler func(http.ResponseWriter, *http.Request, ConnectionConfi
 
 		// if no connection is found, return an error
 		if connection.Name == "" {
-			http.Error(w, "Database not found", http.StatusNotFound)
+			apiError := NewAPIError(http.StatusBadRequest, fmt.Sprintf("Requested database '%s' not found", requestBody.Database), nil)
+			handleError(w, apiError)
 			return
 		}
 
-		handler(w, r, connection, requestBody)
+		err := handler(w, r, connection, requestBody)
+		if err != nil {
+			log.Errorf("Error handling request: %v", err)
+			handleError(w, err)
+		}
 	})
 }
 
-func parseRequestBody(req *http.Request, body *RequestBody) error {
-	return json.NewDecoder(req.Body).Decode(body)
+func handleError(w http.ResponseWriter, err error) {
+	if err != nil {
+		if apiErr, ok := err.(*APIError); ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(apiErr.StatusCode)
+			json.NewEncoder(w).Encode(apiErr)
+			return
+		}
+
+		// Fallback for unexpected errors
+		w.WriteHeader(http.StatusInternalServerError)
+		response := NewAPIError(http.StatusInternalServerError, "An unexpected error occurred", nil)
+		json.NewEncoder(w).Encode(response)
+	}
 }

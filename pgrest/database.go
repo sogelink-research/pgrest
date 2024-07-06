@@ -5,81 +5,63 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
+
+	"bufio"
 
 	"github.com/jackc/pgproto3/v2"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-//var db *pgxpool.Pool
-
-func QueryHandler(w http.ResponseWriter, r *http.Request, connection ConnectionConfig, body RequestBody) {
+func QueryHandler(w http.ResponseWriter, r *http.Request, connection ConnectionConfig, body RequestBody) error {
 	db, err := pgxpool.Connect(context.Background(), connection.ConnectionString)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
+		return NewAPIError(http.StatusInternalServerError, fmt.Sprintf("Error connecting to database: %v", connection.Name), nil)
 	}
 	defer db.Close()
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
 	rows, err := db.Query(context.Background(), body.Query)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Query error: %v", err), http.StatusBadRequest)
-		return
+		errorMessage := fmt.Sprintf("%v", err.Error())
+		return NewAPIError(http.StatusBadRequest, "Error executing query", &errorMessage)
 	}
 	defer rows.Close()
 
-	// Retrieve column names
-	fieldDescriptions := rows.FieldDescriptions()
-	columns := getColumnNames(fieldDescriptions)
-
-	// Prepare the response writer for gzip compression
-	w.Header().Set("Content-Encoding", "gzip")
+	columns := getColumnNames(rows.FieldDescriptions())
 	w.Header().Set("Content-Type", "application/json")
-	gz := gzip.NewWriter(w)
-	defer gz.Close()
 
-	// Stream the JSON response
-	encoder := json.NewEncoder(gz)
+	var encoder *json.Encoder
+	var writer io.Writer
 
-	// Write column names first
-	queryResponse := map[string]interface{}{
-		"columns": columns,
-		"rows":    [][]interface{}{},
+	// Use buffered writer for more efficient I/O
+	const bufferSize = 64 * 1024 // 64 KB
+	bw := bufio.NewWriterSize(w, bufferSize)
+	defer bw.Flush()
+
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		var gz *gzip.Writer
+		gz, _ = gzip.NewWriterLevel(bw, gzip.DefaultCompression)
+		defer gz.Close()
+		writer = gz
+		encoder = json.NewEncoder(gz)
+	} else {
+		writer = bw
+		encoder = json.NewEncoder(bw)
 	}
 
-	if err := encoder.Encode(queryResponse); err != nil {
-		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
-		return
+	switch body.Format {
+	case DefaultFormat:
+		return handleDefault(rows, columns, writer, encoder)
+	case DataArrayFormat:
+		return handleDataArray(rows, columns, writer, encoder)
 	}
 
-	// Stream rows
-	for rows.Next() {
-		values, err := rows.Values()
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Error reading row: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Encode each row individually
-		row := map[string]interface{}{
-			"rows": [][]interface{}{values},
-		}
-		if err := encoder.Encode(row); err != nil {
-			http.Error(w, fmt.Sprintf("Error encoding row: %v", err), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	if rows.Err() != nil {
-		http.Error(w, fmt.Sprintf("Query error: %v", rows.Err()), http.StatusInternalServerError)
-		return
-	}
+	return nil
 }
 
 func getColumnNames(columns []pgproto3.FieldDescription) []string {
@@ -88,4 +70,56 @@ func getColumnNames(columns []pgproto3.FieldDescription) []string {
 		names[i] = string(col.Name)
 	}
 	return names
+}
+
+func handleDefault(rows pgx.Rows, columns []string, writer io.Writer, encoder *json.Encoder) error {
+	jsonStart := []byte(`{"data":[`)
+	writer.Write(jsonStart)
+
+	first := true
+	for rows.Next() {
+		values, _ := rows.Values()
+
+		row := make(map[string]interface{})
+		for i, col := range columns {
+			row[col] = values[i]
+		}
+
+		if !first {
+			writer.Write([]byte(`,`))
+		}
+		first = false
+
+		encoder.Encode(row)
+	}
+
+	writer.Write([]byte(`]}`))
+
+	return nil
+}
+
+func handleDataArray(rows pgx.Rows, columns []string, writer io.Writer, encoder *json.Encoder) error {
+	jsonStart := []byte(`{"data": {`)
+	writer.Write(jsonStart)
+
+	jsonFields := []byte(fmt.Sprintf(`"fields":["%s"],`, strings.Join(columns, `","`)))
+	writer.Write(jsonFields)
+
+	jsonRows := []byte(`"rows":[`)
+	writer.Write(jsonRows)
+
+	first := true
+	for rows.Next() {
+		values, _ := rows.Values()
+
+		if !first {
+			writer.Write([]byte(`,`))
+		}
+		first = false
+
+		encoder.Encode(values)
+	}
+
+	writer.Write([]byte(`]}}`))
+	return nil
 }

@@ -2,6 +2,8 @@ module github.com/sogelink-research/pgrest
 
 go 1.22.0
 
+require github.com/jackc/pgx v3.6.2+incompatible
+
 require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -13,6 +15,7 @@ require (
 	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
+	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rs/cors v1.11.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	golang.org/x/crypto v0.20.0 // indirect
