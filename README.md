@@ -28,7 +28,7 @@ Send a post request to pgrest
 ```json
 {
     "database": "default",
-    "query": "SELECT * from test",
+    "query": "SELECT station_id, temperature, humidity, wind_speed FROM weather_station_measurement WHERE station_id = 1",
     "format": "default"
 }
 ```
@@ -41,6 +41,83 @@ Send a post request to pgrest
 
 ### Authorization
 
-## Config
+To authorize requests with a Bearer token in the Authorization header, you need to encode the `clientId:apiKey` pair in base64. The resulting string should be included in the Authorization header as follows:
 
-pgrest can be configured using a config file.
+```
+Authorization: Bearer <base64(clientId:apiKey)>
+```
+
+Replace `<base64(clientId:apiKey)>` with the actual base64-encoded value of `clientId:apiKey`.
+
+For example, if your `clientId` is "pgrest" and your `apiKey` is "myapikey", the Authorization header would look like this:
+
+```
+Authorization: Bearer cGdyZXN0Om15YXBraWQiOm15YXBraWQ=
+```
+
+# PGRest Configuration Guide
+
+This document provides an overview of the configuration settings for PGRest as defined in the `./config/pgrest.conf` file. PGRest tries to load the config file from `./config/pgrest.conf` by default. The path to the config file can be set using the environment variable `PGREST_CONFIG_PATH`
+
+## Example
+
+```json
+{
+  "pgrest": {
+    "port": 8080,
+    "debug": true
+  },
+  "connections": [
+    {
+      "name": "default",
+      "connectionString": "postgres://user:password@localhost:5432/database",
+      "users": [
+        {
+          "clientId": "pgrest",
+          "clientSecret": "mysecret",
+          "apiKey": "myapikey",
+          "cors": {
+            "allowOrigins": ["*"]
+          }
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+```
+
+## Configuration Overview
+
+The configuration for PGRest is structured into two main sections: `pgrest` and `connections`.
+
+### PGRest Settings
+
+- **Port**: The port on which PGRest will listen for incoming requests. Defaults to `8080`.
+- **Debug**: This flag controls the log level, if set to false log level defaults to `info`. Defaults to false.
+
+### Connections
+
+This section defines the database connections that PGRest can use.
+
+#### Connection
+
+- **Name**: Identifier for the connection.
+- **Connection String**: The connection string used to connect to the PostgreSQL database.
+
+#### Users
+
+Defines the users who can access this connection.
+
+- **Client ID**: Identifier for the client.
+- **Client Secret**: A secret key for the client, not send in requests and used for HMAC.
+- **API Key**: An API key for additional security.
+- **CORS**: Cross-Origin Resource Sharing settings.
+  - **Allow Origins**: Specifies the origins that are allowed to access the resource per user.
+
+## Security Notice
+
+Ensure to keep your `clientSecret` and `API Key` confidential to prevent unauthorized access to your database.
+
+For production environments, it is recommended to restrict the `allowOrigins` in the CORS settings to only the domains that need access to the API.
