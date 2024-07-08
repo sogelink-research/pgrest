@@ -22,7 +22,11 @@ func initLogger(config pgrest.Config) {
 }
 
 func main() {
-	pgrest.InitializeConfig()
+	err := pgrest.InitializeConfig()
+	if err != nil {
+		log.Fatalf("Failed to initialize configuration: %v", err)
+	}
+
 	config := pgrest.GetConfig()
 	initLogger(config)
 	pgrest.StartServer(config)
