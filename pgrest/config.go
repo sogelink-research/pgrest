@@ -26,6 +26,7 @@ type PGRestConfig struct {
 
 type ConnectionConfig struct {
 	Name             string       `json:"name"`
+	Auth             string       `json:"auth"`
 	ConnectionString string       `json:"connectionString"`
 	Users            []UserConfig `json:"users"`
 }
@@ -108,6 +109,13 @@ func loadConfig() error {
 	// if debug is not set, default to false
 	if !config.PGRest.Debug {
 		config.PGRest.Debug = false
+	}
+
+	// iterate over connections and set default values
+	for _, conn := range config.Connections {
+		if conn.Auth == "" {
+			conn.Auth = "private"
+		}
 	}
 
 	return nil

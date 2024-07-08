@@ -67,6 +67,17 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 			}
 		}
 
+		// if connection auth is public, handle the request without authentication
+		if connection.Auth == "public" {
+			err = handler(w, r, connection, requestBody)
+			if err != nil {
+				log.Errorf("Error handling request: %v", err)
+				handleError(w, err)
+			}
+
+			return
+		}
+
 		// Get the Authorization header
 		clientID, token, err := getAuthHeader(r)
 		if err != nil {
