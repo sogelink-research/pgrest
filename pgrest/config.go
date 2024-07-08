@@ -106,6 +106,11 @@ func loadConfig() error {
 		config.PGRest.Port = 8080
 	}
 
+	// if debug is not set, default to false
+	if !config.PGRest.Debug {
+		config.PGRest.Debug = false
+	}
+
 	return nil
 }
 
