@@ -69,6 +69,7 @@ This document provides an overview of the configuration settings for PGRest as d
     {
       "name": "default",
       "connectionString": "postgres://user:password@localhost:5432/database",
+      "auth": "private",
       "users": [
         {
           "clientId": "pgrest",
@@ -102,6 +103,7 @@ This section defines the database connections that PGRest can use.
 
 - **Name**: Identifier for the connection.
 - **Connection String**: The connection string used to connect to the PostgreSQL database.
+- **Auth**: (Do not use!, leave out or set to private) Can be set to public to ignore Authorization: Authorization header/user access will not be checked. Default private.
 
 #### Users
 
