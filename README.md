@@ -1,11 +1,11 @@
 # pgrest
 
-A server written in GO that provides secure and efficient querying of PostgreSQL databases via a RESTful API.
+A simple RESTful service written in Go to proxy queries to PostgreSQL servers that are not connected to the internet.  
 
 ## Features
 
 - Supports multiple postgres sources to query
-- GZIP compression support
+- Brotli and GZIP compression support
 - Streaming response to keep memory footprint low
 - DataArray output option to lower transfered bytes and increase speed for lots of rows
 - Server binary size < 10MB, Docker image only 16MB
@@ -13,7 +13,6 @@ A server written in GO that provides secure and efficient querying of PostgreSQL
 ## ToDo
 
 - HMAC
-- Brotli compression
 - Ratelimit user
 
 ## Security

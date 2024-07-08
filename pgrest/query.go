@@ -11,6 +11,7 @@ import (
 
 	"bufio"
 
+	"github.com/andybalholm/brotli"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -39,7 +40,14 @@ func QueryHandler(w http.ResponseWriter, r *http.Request, connection ConnectionC
 	bw := bufio.NewWriterSize(w, bufferSize)
 	defer bw.Flush()
 
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+	acceptEncoding := r.Header.Get("Accept-Encoding")
+	if strings.Contains(acceptEncoding, "br") {
+		w.Header().Set("Content-Encoding", "br")
+		brWriter := brotli.NewWriterLevel(bw, brotli.DefaultCompression)
+		defer brWriter.Close()
+		writer = brWriter
+		encoder = json.NewEncoder(brWriter)
+	} else if strings.Contains(acceptEncoding, "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
 		var gz *gzip.Writer
 		gz, _ = gzip.NewWriterLevel(bw, gzip.DefaultCompression)
