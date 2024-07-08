@@ -54,10 +54,10 @@ Send a post request to pgrest
 
 ### Authorization
 
-Authorization on the server side utilizes a custom authentication scheme based on the Authorization header with a Bearer token. The token is structured as a base64-encoded string clientId.token, where the token is a SHA-256 HMAC (encoded in base64) generated from the POST body using the clientSecret as the key.
+Authorization on the server side utilizes a custom authentication scheme based on the Authorization header with a Bearer token. The token is structured as a base64-encoded string clientId.token, where the token is a SHA-256 HMAC (encoded in base64) generated from the POST body using the clientSecret as the key. When a connection is configured with `"auth": "public"` authorization is skipped, use with cause!.
 
 ```
-Authorization: Bearer <base64(clientId:token)>
+Authorization: Bearer <base64(clientId.token)>
 ```
 
 See `examples/curl_example.sh` for an example how to request using curl.
