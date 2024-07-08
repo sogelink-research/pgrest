@@ -74,6 +74,13 @@ func GetDBPool(name string, connectionString string) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to database '%s': %v", name, err)
 	}
+
+	err = pool.Ping(context.Background())
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("error connecting to database '%s': %v", name, err)
+	}
+
 	log.Debugf("Opened new pool: %s\n", name)
 	dbPoolMap[name] = pool
 	poolLastUsed[name] = time.Now() // Update last used time
