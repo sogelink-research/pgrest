@@ -7,7 +7,7 @@ CLIENTSECRET="mysecret"
 # JSON payload
 read -r -d '' JSON_PAYLOAD << EOF
 {
-    "database": "default",
+    "connection": "default",
     "format": "default",
     "query": "SELECT * FROM datacore.knmi_historical_weather_measurement WHERE entity_id = 260 limit 100"
 }

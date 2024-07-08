@@ -61,7 +61,7 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 		// Find the requested database connection
 		var connection ConnectionConfig
 		for _, c := range connections {
-			if c.Name == requestBody.Database {
+			if c.Name == requestBody.Connection {
 				connection = c
 				break
 			}
@@ -85,10 +85,10 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 			return
 		}
 
-		// Check if the user has access to the requested database
+		// Check if the user has access to the requested connection
 		user := getConnectionUser(clientID, connection)
 		if user == nil {
-			apiError := NewAPIError(http.StatusUnauthorized, "Unauthorized access to database", nil)
+			apiError := NewAPIError(http.StatusUnauthorized, "Unauthorized access for connection", nil)
 			handleError(w, apiError)
 			return
 		}
@@ -110,7 +110,7 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 
 		// if no connection is found, return an error
 		if connection.Name == "" {
-			apiError := NewAPIError(http.StatusBadRequest, fmt.Sprintf("Requested database '%s' not found", requestBody.Database), nil)
+			apiError := NewAPIError(http.StatusBadRequest, fmt.Sprintf("Requested connection '%s' not found", requestBody.Connection), nil)
 			handleError(w, apiError)
 			return
 		}

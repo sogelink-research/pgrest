@@ -7,9 +7,9 @@ import (
 
 // RequestBody represents the structure of the incoming JSON payload
 type RequestBody struct {
-	Database string     `json:"database"`
-	Query    string     `json:"query"`
-	Format   FormatType `json:"format,omitempty"`
+	Connection string     `json:"connection"`
+	Query      string     `json:"query"`
+	Format     FormatType `json:"format,omitempty"`
 }
 
 type FormatType string
@@ -20,7 +20,7 @@ const (
 )
 
 // UnmarshalJSON unmarshals the JSON data into the RequestBody struct.
-// It sets default values for Database and Format fields if they are empty.
+// It sets default values for Connections and Format fields if they are empty.
 // It also validates the Format field and returns an error if it is not a supported format.
 func (rb *RequestBody) UnmarshalJSON(data []byte) error {
 	// Create a secondary type to avoid recursion
@@ -36,9 +36,9 @@ func (rb *RequestBody) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Set the default value if Database is empty
-	if rb.Database == "" {
-		rb.Database = "default"
+	// Set the default value if Connection is empty
+	if rb.Connection == "" {
+		rb.Connection = "default"
 	}
 
 	// Set the default value if Format is empty

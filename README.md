@@ -40,7 +40,7 @@ Send a post request to pgrest
 
 ```json
 {
-    "database": "default",
+    "connection": "default",
     "query": "SELECT station_id, temperature, humidity, wind_speed FROM weather_station_measurement WHERE station_id = 1",
     "format": "default"
 }
@@ -48,7 +48,7 @@ Send a post request to pgrest
 
 |property|description|default|
 |-|-|-|
-|database|the name of the database, configured in the config|default|
+|connection|the name of the connection, configured in the config|default|
 |query|The query to run|-|
 |format|The response format ['default', 'dataArray']|default|
 
