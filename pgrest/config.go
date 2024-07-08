@@ -32,7 +32,6 @@ type ConnectionConfig struct {
 
 type UserConfig struct {
 	ClientID     string     `json:"clientId"`
-	APIKey       string     `json:"apiKey"`
 	ClientSecret string     `json:"clientSecret"`
 	CORS         CorsConfig `json:"cors"`
 }

@@ -1,9 +1,13 @@
 package pgrest
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -34,12 +38,15 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 			return
 		}
 
-		// Get the Authorization header
-		clientID, apiKey, err := getAuthHeader(r)
+		// Read the request body
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			handleError(w, err)
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
 			return
 		}
+
+		// Reset the request body with the original data
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 		var requestBody RequestBody
 
@@ -60,11 +67,25 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 			}
 		}
 
-		// Check if the user has access to the requested database
-		user := getConnectionUser(clientID, apiKey, connection)
+		// Get the Authorization header
+		clientID, token, err := getAuthHeader(r)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
 
+		// Check if the user has access to the requested database
+		user := getConnectionUser(clientID, connection)
 		if user == nil {
 			apiError := NewAPIError(http.StatusUnauthorized, "Unauthorized access to database", nil)
+			handleError(w, apiError)
+			return
+		}
+
+		// Validate the auth token
+		generatedToken := getHMACToken(string(body), user.ClientSecret)
+		if generatedToken != token {
+			apiError := NewAPIError(http.StatusUnauthorized, "Invalid token", nil)
 			handleError(w, apiError)
 			return
 		}
@@ -91,8 +112,8 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 	})
 }
 
-// getAuthHeader extracts the username and password from the Authorization header of an HTTP request.
-// It expects the Authorization header to be in the format "Bearer base64(username:password)".
+// getAuthHeader extracts the clientID and HMAC from the Authorization header of an HTTP request.
+// It expects the Authorization header to be in the format "Bearer base64(clientID:HMAC)".
 // If the header is missing, invalid, or cannot be decoded, it returns an error.
 func getAuthHeader(r *http.Request) (string, string, error) {
 	authHeader := r.Header.Get("Authorization")
@@ -114,7 +135,7 @@ func getAuthHeader(r *http.Request) (string, string, error) {
 		return "", "", NewAPIError(http.StatusUnauthorized, "Invalid Authorization header", nil)
 	}
 
-	credentials := strings.Split(string(decodedBytes), ":")
+	credentials := strings.Split(string(decodedBytes), ".")
 	if len(credentials) != 2 {
 		return "", "", NewAPIError(http.StatusUnauthorized, "Invalid Authorization header", nil)
 	}
@@ -124,14 +145,22 @@ func getAuthHeader(r *http.Request) (string, string, error) {
 
 // getConnectionUser returns the UserConfig associated with the given client ID and API key from the provided ConnectionConfig.
 // If no matching user is found, it returns nil.
-func getConnectionUser(clientID, apiKey string, connection ConnectionConfig) *UserConfig {
+func getConnectionUser(clientID string, connection ConnectionConfig) *UserConfig {
 	for _, user := range connection.Users {
-		if user.ClientID == clientID && user.APIKey == apiKey {
+		if user.ClientID == clientID {
 			return &user
 		}
 	}
 
 	return nil
+}
+
+// getHMACToken generates an HMAC token for the given message using the provided secret.
+// It uses the SHA256 hashing algorithm and encodes the resulting hash in base64 format.
+func getHMACToken(message, secret string) string {
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(message))
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
 // handleError handles the error and sends an appropriate response to the client.

@@ -5,19 +5,23 @@ A simple RESTful service written in Go to proxy queries to PostgreSQL servers th
 ## Features
 
 - Supports multiple postgres sources to query
+- Hash-Based Message Authentication
 - Brotli and GZIP compression support
 - Streaming response to keep memory footprint low
 - DataArray output option to lower transfered bytes and increase speed for lots of rows
 - Server binary size < 10MB, Docker image only 16MB
 
-## ToDo
+## Future?
 
-- HMAC
 - Ratelimit user
+- IP-Whitelisting
 
-## Security
+## Security notice
 
-You're opening up a way to directly query the database so make sure the user set in the connection string has the appropriate operation and access rights.
+You're opening up a way to directly query the database so make sure you handle things correctly.
+
+- Make sure the user set in the connection string has the appropriate operation and access rights for configured clients.
+- Ensure to keep your `clientSecret` confidential to prevent unauthorized access to a database.
 
 ## Query
 
@@ -41,19 +45,13 @@ Send a post request to pgrest
 
 ### Authorization
 
-To authorize requests with a Bearer token in the Authorization header, you need to encode the `clientId:apiKey` pair in base64. The resulting string should be included in the Authorization header as follows:
+Authorization on the server side utilizes a custom authentication scheme based on the Authorization header with a Bearer token. The token is structured as a base64-encoded string clientId.token, where the token is a SHA-256 HMAC (encoded in base64) generated from the POST body using the clientSecret as the key.
 
 ```
-Authorization: Bearer <base64(clientId:apiKey)>
+Authorization: Bearer <base64(clientId:token)>
 ```
 
-Replace `<base64(clientId:apiKey)>` with the actual base64-encoded value of `clientId:apiKey`.
-
-For example, if your `clientId` is "pgrest" and your `apiKey` is "myapikey", the Authorization header would look like this:
-
-```
-Authorization: Bearer cGdyZXN0Om15YXBraWQiOm15YXBraWQ=
-```
+See `examples/curl_example.sh` for an example how to request using curl.
 
 # PGRest Configuration Guide
 
@@ -75,7 +73,6 @@ This document provides an overview of the configuration settings for PGRest as d
         {
           "clientId": "pgrest",
           "clientSecret": "mysecret",
-          "apiKey": "myapikey",
           "cors": {
             "allowOrigins": ["*"]
           }
@@ -111,13 +108,6 @@ This section defines the database connections that PGRest can use.
 Defines the users who can access this connection.
 
 - **Client ID**: Identifier for the client.
-- **Client Secret**: A secret key for the client, not send in requests and used for HMAC.
-- **API Key**: An API key for additional security.
+- **Client Secret**: A secret key for the client, will not be send between client/server.
 - **CORS**: Cross-Origin Resource Sharing settings.
   - **Allow Origins**: Specifies the origins that are allowed to access the resource per user.
-
-## Security Notice
-
-Ensure to keep your `clientSecret` and `API Key` confidential to prevent unauthorized access to your database.
-
-For production environments, it is recommended to restrict the `allowOrigins` in the CORS settings to only the domains that need access to the API.
