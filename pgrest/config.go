@@ -115,6 +115,8 @@ func loadConfig() error {
 	for _, conn := range config.Connections {
 		if conn.Auth == "" {
 			conn.Auth = "private"
+		} else if conn.Auth != "public" {
+			log.Warnf("Auth for connection '%s' set to public.", conn.Name)
 		}
 	}
 
