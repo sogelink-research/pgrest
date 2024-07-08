@@ -23,6 +23,15 @@ You're opening up a way to directly query the database so make sure you handle t
 - Make sure the user set in the connection string has the appropriate operation and access rights for configured clients.
 - Ensure to keep your `clientSecret` confidential to prevent unauthorized access to a database.
 
+
+## Docker
+
+Example running PGRest using docker and mount/use a config file.
+
+```sh
+docker run --network host -v ./my.conf:/config/my.conf -e PGREST_CONFIG_PATH="/config/my.conf" ghcr.io/sogelink-research/pgrest:latest
+```
+
 ## Query
 
 Send a post request to pgrest
