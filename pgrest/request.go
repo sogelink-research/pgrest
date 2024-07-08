@@ -19,7 +19,9 @@ const (
 	DataArrayFormat FormatType = "dataArray"
 )
 
-// Implement UnmarshalJSON method to set default values
+// UnmarshalJSON unmarshals the JSON data into the RequestBody struct.
+// It sets default values for Database and Format fields if they are empty.
+// It also validates the Format field and returns an error if it is not a supported format.
 func (rb *RequestBody) UnmarshalJSON(data []byte) error {
 	// Create a secondary type to avoid recursion
 	type Alias RequestBody

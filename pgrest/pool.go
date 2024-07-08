@@ -11,16 +11,20 @@ import (
 )
 
 var (
-	dbPoolMap       = make(map[string]*pgxpool.Pool)
-	dbPoolMutex     sync.Mutex
-	poolLastUsed    = make(map[string]time.Time) // Map to track last usage time of each pool
-	cleanupInterval = 1 * time.Minute            // Interval to check for idle pools
+	dbPoolMap       = make(map[string]*pgxpool.Pool) // Map to store database connection pools
+	dbPoolMutex     sync.Mutex                       // Mutex to ensure thread safety for dbPoolMap
+	poolLastUsed    = make(map[string]time.Time)     // Map to track last usage time of each pool
+	cleanupInterval = 1 * time.Minute                // Interval to check for idle pools
 )
 
+// init is a special Go function that is automatically called before the main function.
+// It is used to perform initialization tasks.
 func init() {
 	go periodicCleanup()
 }
 
+// periodicCleanup is a goroutine that periodically cleans up idle database connection pools.
+// It closes idle pools that have not been used for a certain duration specified by cleanupInterval.
 func periodicCleanup() {
 	for {
 		time.Sleep(cleanupInterval)
@@ -39,6 +43,10 @@ func periodicCleanup() {
 	}
 }
 
+// CloseDBPools closes all the database connection pools.
+// It acquires a lock on the dbPoolMutex to ensure thread safety.
+// It iterates over all the pools in the dbPoolMap and calls the Close method on each pool.
+// After closing the pools, it resets the dbPoolMap and poolLastUsed to empty maps.
 func CloseDBPools() {
 	dbPoolMutex.Lock()
 	defer dbPoolMutex.Unlock()
@@ -49,6 +57,10 @@ func CloseDBPools() {
 	poolLastUsed = make(map[string]time.Time)
 }
 
+// GetDBPool returns a database connection pool for the specified name and connection string.
+// If a pool with the given name already exists, it returns the existing pool.
+// Otherwise, it creates a new pool and adds it to the pool map.
+// The last used time for the pool is updated each time it is retrieved or created.
 func GetDBPool(name string, connectionString string) (*pgxpool.Pool, error) {
 	dbPoolMutex.Lock()
 	defer dbPoolMutex.Unlock()

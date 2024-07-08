@@ -10,6 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// StartServer starts the PGRest server with the given configuration.
+// It initializes the necessary resources, sets up the main handler,
+// and listens for incoming HTTP requests on the specified port.
 func StartServer(config Config) {
 	defer CloseDBPools()
 
@@ -18,6 +21,12 @@ func StartServer(config Config) {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", config.PGRest.Port), nil))
 }
 
+// mainHandler is a HTTP handler function that wraps the provided handler function
+// and performs various checks and validations before executing the handler.
+// It checks the request method, validates the authorization header, decodes the
+// incoming JSON payload, finds the requested database connection, checks if the
+// user has access to the database, checks if the request is allowed from the origin,
+// and finally executes the provided handler function.
 func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConfig, RequestBody) error, connections []ConnectionConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -82,7 +91,9 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 	})
 }
 
-// function to get Authorization header from request Bearar username:apikey
+// getAuthHeader extracts the username and password from the Authorization header of an HTTP request.
+// It expects the Authorization header to be in the format "Bearer base64(username:password)".
+// If the header is missing, invalid, or cannot be decoded, it returns an error.
 func getAuthHeader(r *http.Request) (string, string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
@@ -111,7 +122,8 @@ func getAuthHeader(r *http.Request) (string, string, error) {
 	return credentials[0], credentials[1], nil
 }
 
-// function to check if the user has access to the requested database
+// getConnectionUser returns the UserConfig associated with the given client ID and API key from the provided ConnectionConfig.
+// If no matching user is found, it returns nil.
 func getConnectionUser(clientID, apiKey string, connection ConnectionConfig) *UserConfig {
 	for _, user := range connection.Users {
 		if user.ClientID == clientID && user.APIKey == apiKey {
@@ -122,6 +134,9 @@ func getConnectionUser(clientID, apiKey string, connection ConnectionConfig) *Us
 	return nil
 }
 
+// handleError handles the error and sends an appropriate response to the client.
+// If the error is of type *APIError, it sets the response status code and encodes the error as JSON.
+// For unexpected errors, it sets the response status code to 500 and creates a new APIError with a generic message.
 func handleError(w http.ResponseWriter, err error) {
 	if err != nil {
 		if apiErr, ok := err.(*APIError); ok {

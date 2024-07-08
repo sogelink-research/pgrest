@@ -12,7 +12,7 @@ import (
 )
 
 var config Config
-var configFile = "./config/pgrest.conf"
+var configFile = getConfigLocation()
 
 type Config struct {
 	PGRest      PGRestConfig       `json:"pgrest"`
@@ -41,6 +41,8 @@ type CorsConfig struct {
 	AllowOrigins []string `json:"allowOrigins"`
 }
 
+// isOriginAllowed checks if the provided origin is allowed based on the CorsConfig settings.
+// It returns true if the origin is allowed, otherwise false.
 func (c CorsConfig) isOriginAllowed(v string) bool {
 	if c.AllowOrigins[0] == "*" {
 		return true
@@ -54,6 +56,19 @@ func (c CorsConfig) isOriginAllowed(v string) bool {
 	return false
 }
 
+// getConfigLocation returns the location of the PGREST configuration file.
+// If the environment variable PGREST_CONFIG_PATH is set, it returns its value.
+// Otherwise, it returns the default location "./config/pgrest.conf".
+func getConfigLocation() string {
+	location := os.Getenv("PGREST_CONFIG_PATH")
+	if location == "" {
+		location = "./config/pgrest.conf"
+	}
+	return location
+}
+
+// InitializeConfig loads the configuration and starts watching for changes.
+// It returns an error if there was a problem loading the configuration.
 func InitializeConfig() error {
 	err := loadConfig()
 	if err != nil {
@@ -65,7 +80,10 @@ func InitializeConfig() error {
 	return nil
 }
 
-// loadConfig reads and parses the config file.
+// loadConfig loads the configuration from a JSON file.
+// It reads the JSON file, unmarshals it into the 'config' variable,
+// and sets default values if necessary.
+// Returns an error if there was a problem reading or unmarshaling the JSON file.
 func loadConfig() error {
 	jsonFile, err := os.Open(configFile)
 	if err != nil {
@@ -91,10 +109,13 @@ func loadConfig() error {
 	return nil
 }
 
+// GetConfig returns the current configuration.
 func GetConfig() Config {
 	return config
 }
 
+// watchConfigChanges watches for changes in the configuration file directory and reloads the configuration
+// when a change is detected.
 func watchConfigChanges() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
