@@ -1,0 +1,27 @@
+services:
+  pgrest:
+    container_name: pgrest
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config/pgrest.conf:/root/config/pgrest.conf # Mount a config
+    #environment:
+    #  PGREST_CONFIG_PATH: "/root/config/my.conf" # Change the default path if conf mounted to other than /root/config/pgrest.conf
+    depends_on:
+      - pgrest-test-db
+
+  pgrest-test-db:
+    container_name: pgrest-test-db
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./examples/data/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: ["postgres", "-c", "log_statement=all"]
