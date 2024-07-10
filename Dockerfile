@@ -22,6 +22,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o pgrest .
 # Stage 2: Create the final lightweight image
 FROM alpine:3.20.1
 
+# Set the environment variables
+ENV PGREST_CONFIG_PATH="/root/config/pgrest.conf"
+
 # Install ca-certificates to handle HTTPS requests
 RUN apk --no-cache add ca-certificates
 
@@ -29,8 +32,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 # Copy the Go binary from the builder stage
-COPY --from=builder /app/pgrest .
-COPY ./config/pgrest.conf /root/config/pgrest.conf
+COPY --from=builder /app/pgrest/pgrest .
 
 # Command to run the application
 CMD ["./pgrest"]
