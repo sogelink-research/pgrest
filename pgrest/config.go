@@ -4,10 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"path/filepath"
-	"time"
 
-	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -75,8 +72,6 @@ func InitializeConfig() error {
 		return err
 	}
 
-	go watchConfigChanges()
-
 	return nil
 }
 
@@ -126,45 +121,4 @@ func loadConfig() error {
 // GetConfig returns the current configuration.
 func GetConfig() Config {
 	return config
-}
-
-// watchConfigChanges watches for changes in the configuration file directory and reloads the configuration
-// when a change is detected.
-func watchConfigChanges() {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatalf("Failed to create file watcher: %v", err)
-	}
-	defer watcher.Close()
-
-	configDir := filepath.Dir(configFile)
-
-	err = watcher.Add(configDir)
-	if err != nil {
-		log.Fatalf("Failed to watch config file changes: %v", err)
-	}
-
-	log.Debugf("Watching for changes in %s", configDir)
-
-	for {
-		select {
-		case event, ok := <-watcher.Events:
-			if !ok {
-				return
-			}
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				log.Debugf("Config file changed. Reloading...")
-				time.Sleep(100 * time.Millisecond) // Add a small delay to handle rapid changes
-				err := loadConfig()
-				if err != nil {
-					log.Errorf("Error reloading config: %v", err)
-				}
-			}
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				return
-			}
-			log.Errorf("Error watching config file: %v", err)
-		}
-	}
 }
