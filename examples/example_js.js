@@ -4,7 +4,8 @@ const url = "http://localhost:8080/api/query";
 const clientID = "pgrest";
 const clientSecret = "98265691-8b9e-44dc-acf9-94610c392c00";
 const connection = "default"; // default can be omitted
-const query = "SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 50";
+const defaultQuery = "SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 50";
+const query = process.argv[2] ? process.argv[2] : defaultQuery;
 
 const client = new PGRestClient(url, clientID, clientSecret, connection);
 
