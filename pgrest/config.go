@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -17,8 +18,9 @@ type Config struct {
 }
 
 type PGRestConfig struct {
-	Port  int  `json:"port"`
-	Debug bool `json:"debug"`
+	Port  int        `json:"port"`
+	Debug bool       `json:"debug"`
+	CORS  CorsConfig `json:"cors"`
 }
 
 type ConnectionConfig struct {
@@ -29,13 +31,14 @@ type ConnectionConfig struct {
 }
 
 type UserConfig struct {
-	ClientID     string     `json:"clientId"`
-	ClientSecret string     `json:"clientSecret"`
-	CORS         CorsConfig `json:"cors"`
+	ClientID     string `json:"clientId"`
+	ClientSecret string `json:"clientSecret"`
 }
 
 type CorsConfig struct {
 	AllowOrigins []string `json:"allowOrigins"`
+	AllowHeaders []string `json:"allowHeaders"`
+	AllowMethods []string `json:"allowMethods"`
 }
 
 // isOriginAllowed checks if the provided origin is allowed based on the CorsConfig settings.
@@ -51,6 +54,18 @@ func (c CorsConfig) isOriginAllowed(v string) bool {
 		}
 	}
 	return false
+}
+
+func (c CorsConfig) getAllowOriginsString() string {
+	return strings.Join(c.AllowOrigins, ", ")
+}
+
+func (c CorsConfig) getAllowHeadersString() string {
+	return strings.Join(c.AllowHeaders, ", ")
+}
+
+func (c CorsConfig) getAllowMethodsString() string {
+	return strings.Join(c.AllowMethods, ", ")
 }
 
 // getConfigLocation returns the location of the PGREST configuration file.
@@ -104,6 +119,18 @@ func loadConfig() error {
 	// if debug is not set, default to false
 	if !config.PGRest.Debug {
 		config.PGRest.Debug = false
+	}
+
+	if len(config.PGRest.CORS.AllowOrigins) == 0 {
+		config.PGRest.CORS.AllowOrigins = []string{"*"}
+	}
+
+	if len(config.PGRest.CORS.AllowHeaders) == 0 {
+		config.PGRest.CORS.AllowHeaders = []string{"*"}
+	}
+
+	if len(config.PGRest.CORS.AllowMethods) == 0 {
+		config.PGRest.CORS.AllowMethods = []string{"POST", "OPTIONS"}
 	}
 
 	// iterate over connections and set default values

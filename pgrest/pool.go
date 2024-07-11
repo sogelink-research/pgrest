@@ -36,7 +36,7 @@ func periodicCleanup() {
 				pool.Close()
 				delete(dbPoolMap, name)
 				delete(poolLastUsed, name)
-				log.Debugf("Closed idle pool: %s\n", name)
+				log.Debugf("Closed idle pool: %s", name)
 			}
 		}
 		dbPoolMutex.Unlock()
@@ -81,7 +81,7 @@ func GetDBPool(name string, connectionString string) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("error connecting to database '%s': %v", name, err)
 	}
 
-	log.Debugf("Opened new pool: %s\n", name)
+	log.Debugf("Opened new pool: %s", name)
 	dbPoolMap[name] = pool
 	poolLastUsed[name] = time.Now() // Update last used time
 	return pool, nil

@@ -24,13 +24,54 @@ You're opening up a way to directly query the database so make sure you handle t
 - Ensure to keep your `clientSecret` confidential to prevent unauthorized access to a database.
 
 
-## Docker
+## Usage
+
+### Local development
+
+Download dependencies and start PGRest
+
+```sh
+go mod download
+go run main.go
+```
+
+### Docker
 
 Example running PGRest using docker and mount/use a config file.
 
 ```sh
-docker run --network host -v ./my.conf:/config/my.conf -e PGREST_CONFIG_PATH="/config/my.conf" ghcr.io/sogelink-research/pgrest:latest
+docker run --network host -v ./config/pgrest.conf:/config/pgrest.conf -e PGREST_CONFIG_PATH="/config/pgrest.conf" ghcr.io/sogelink-research/pgrest:latest
 ```
+
+### Docker compose
+
+To start PGRest with a database with some mock data and readonly user run the following command.
+
+```sh
+docker compose up --build
+```
+
+### Examples
+
+Under `./examples` some examples on how to use PGRest can be found for `curl`, `node` and `javascript`.
+
+### JS client
+
+To make it easier to use PGRest a JS Client can be found under `./examples/pgrest_js_client/pgrest_client.mjs` This is a simple client that helps creating and setting the Authorization token.
+
+```js
+import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
+
+const client = new PGRestClient(
+  "http://localhost:8080/api/query", 
+  "pgrest",
+  "98265691-8b9e-44dc-acf9-94610c392c00", 
+  "default"
+);
+
+const result = await client.query("SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10");
+```
+
 
 ## Query
 
@@ -64,7 +105,7 @@ See `examples/curl_example.sh` for an example how to request using curl.
 
 # PGRest Configuration Guide
 
-This document provides an overview of the configuration settings for PGRest as defined in the `./config/pgrest.conf` file. PGRest tries to load the config file from `./config/pgrest.conf` by default. The path to the config file can be set using the environment variable `PGREST_CONFIG_PATH`
+This document provides an overview of the configuration settings for PGRest as defined in the `./config/pgrest.conf` file. PGRest tries to load the config file from `./config/pgrest.conf` by default and `/root/config/pgrest.conf` for docker. The path to the config file can be set using the environment variable `PGREST_CONFIG_PATH`
 
 ## Example
 
@@ -72,20 +113,22 @@ This document provides an overview of the configuration settings for PGRest as d
 {
   "pgrest": {
     "port": 8080,
-    "debug": true
+    "debug": true,
+    "cors": {
+      "allowOrigins": ["*"],
+      "allowHeaders": ["*"],
+      "allowMethods": ["POST", "OPTIONS"]
+    }
   },
   "connections": [
     {
       "name": "default",
-      "connectionString": "postgres://user:password@localhost:5432/database",
+      "connectionString": "postgres://readonly_user:readonly_password@pgrest-test-db:5432/postgres",
       "auth": "private",
       "users": [
         {
           "clientId": "pgrest",
-          "clientSecret": "mysecret",
-          "cors": {
-            "allowOrigins": ["*"]
-          }
+          "clientSecret": "98265691-8b9e-44dc-acf9-94610c392c00"
         },
         ...
       ]
@@ -101,8 +144,12 @@ The configuration for PGRest is structured into two main sections: `pgrest` and 
 
 ### PGRest Settings
 
-- **Port**: The port on which PGRest will listen for incoming requests. Defaults to `8080`.
-- **Debug**: This flag controls the log level, if set to false log level defaults to `info`. Defaults to false.
+- **port**: The port on which PGRest will listen for incoming requests. Defaults to `8080`.
+- **debug**: This flag controls the log level, if set to false log level defaults to `info`. Defaults to false.
+- **cores**: Cross-Origin Resource Sharing settings.
+  - **allowOrigins**: Specifies the origins that are allowed to access. Default ["*"]
+  - **allowHeaders**: Specifies the allowed headers. Default ["*"]
+  - **allowMethods**: Specifies the allowed methods. Default ["OPTIONS", "POST"]
 
 ### Connections
 
@@ -110,15 +157,13 @@ This section defines the database connections that PGRest can use.
 
 #### Connection
 
-- **Name**: Identifier for the connection.
-- **Connection String**: The connection string used to connect to the PostgreSQL database.
-- **Auth**: (Do not use!, leave out or set to private) Can be set to public to ignore Authorization: Authorization header/user access will not be checked. Default private.
+- **name**: Identifier for the connection.
+- **connectionString**: The connection string used to connect to the PostgreSQL database.
+- **auth**: (Do not use!, leave out or set to private) Can be set to public to ignore Authorization: Authorization header/user access will not be checked. Default private.
 
 #### Users
 
 Defines the users who can access this connection.
 
-- **Client ID**: Identifier for the client.
-- **Client Secret**: A secret key for the client, will not be send between client/server.
-- **CORS**: Cross-Origin Resource Sharing settings.
-  - **Allow Origins**: Specifies the origins that are allowed to access the resource per user.
+- **clientId**: Identifier for the client.
+- **clientSecret**: A secret key for the client, will not be send between client/server.

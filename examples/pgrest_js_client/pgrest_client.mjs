@@ -1,4 +1,4 @@
-class PGRestClient {
+export class PGRestClient {
   #url;
   #clientID;
   #clientSecret;
@@ -37,7 +37,7 @@ class PGRestClient {
     {
       connection = this.#connection,
       format = "default",
-      encoding = "gzip, br",
+      encoding = "gzip, deflate, br",
       executionTimeFormatter = undefined,
     } = {}
   ) {
@@ -134,5 +134,3 @@ class PGRestClient {
       : `${(duration / 1000).toFixed(2)} s`;
   }
 }
-
-module.exports = { PGRestClient };

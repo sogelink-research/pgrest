@@ -21,7 +21,7 @@ func StartServer(config Config) {
 	defer CloseDBPools()
 
 	log.Info(fmt.Sprintf("PGRest started, running on port %v", config.PGRest.Port))
-	http.Handle("/", mainHandler(QueryHandler, config.Connections))
+	http.Handle("/", mainHandler(QueryHandler, config))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", config.PGRest.Port), nil))
 }
 
@@ -31,12 +31,17 @@ func StartServer(config Config) {
 // incoming JSON payload, finds the requested database connection, checks if the
 // user has access to the database, checks if the request is allowed from the origin,
 // and finally executes the provided handler function.
-func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConfig, RequestBody) error, connections []ConnectionConfig) http.Handler {
+func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConfig, RequestBody) error, config Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		preflight := handleCORS(w, r, config.PGRest.CORS)
+		if preflight {
 			return
 		}
+
+		/* if r.Method == http.MethodOptions {
+			handleCORSPreflight(w)
+			return
+		} */
 
 		// Read the request body
 		body, err := io.ReadAll(r.Body)
@@ -60,7 +65,7 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 
 		// Find the requested database connection
 		var connection ConnectionConfig
-		for _, c := range connections {
+		for _, c := range config.Connections {
 			if c.Name == requestBody.Connection {
 				connection = c
 				break
@@ -101,8 +106,10 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 			return
 		}
 
-		// Check if the request is allowed from the origin
-		if !user.CORS.isOriginAllowed(r.Header.Get("Origin")) {
+		// Additional origin check when send from backend
+		// Can easily be bypassed by setting the Origin header to a value
+		// but can add a little bit of security
+		if !config.PGRest.CORS.isOriginAllowed(r.Header.Get("Origin")) {
 			apiError := NewAPIError(http.StatusUnauthorized, "Unauthorized access from origin", nil)
 			handleError(w, apiError)
 			return
@@ -121,6 +128,20 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 			handleError(w, err)
 		}
 	})
+}
+
+// handleCORS sets the appropriate Access-Control-Allow-Origin header based on the configuration.
+func handleCORS(w http.ResponseWriter, r *http.Request, corsConfig CorsConfig) bool {
+	w.Header().Set("Access-Control-Allow-Origin", corsConfig.getAllowOriginsString())
+	w.Header().Set("Access-Control-Allow-Methods", corsConfig.getAllowMethodsString())
+	w.Header().Set("Access-Control-Allow-Headers", corsConfig.getAllowHeadersString())
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+
+	return false
 }
 
 // getAuthHeader extracts the clientID and HMAC from the Authorization header of an HTTP request.

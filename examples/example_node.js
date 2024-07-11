@@ -1,4 +1,6 @@
-const { PGRestClient } = require('./pgrest_js_client/pgrest_client');
+//const { PGRestClient } = require('./pgrest_js_client/pgrest_client.mjs');
+
+import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
 
 const url = "http://localhost:8080/api/query";
 const clientID = "pgrest";
