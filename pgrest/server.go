@@ -122,6 +122,8 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 			return
 		}
 
+		log.Debugf("Connection: %v, User: %v, Query: %v", connection.Name, clientID, requestBody.Query)
+
 		err = handler(w, r, connection, requestBody)
 		if err != nil {
 			log.Errorf("Error handling request: %v", err)
