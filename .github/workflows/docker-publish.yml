@@ -47,7 +47,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=tag
+            type=ref,event=tag,pattern={{version}}
             type=raw,value=latest
 
       - name: Extract Docker metadata for branches
@@ -82,17 +82,3 @@ jobs:
           labels: ${{ steps.meta-branches.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Sign the published Docker image for tags
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          TAGS: ${{ steps.meta-tags.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push-tags.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
-
-      - name: Sign the published Docker image for branches
-        if: github.ref == 'refs/heads/main'
-        env:
-          TAGS: ${{ steps.meta-branches.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push-branches.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
