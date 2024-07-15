@@ -8,7 +8,7 @@ export class PGRestClient {
   /**
    * Represents a PGRest client.
    * @constructor
-   * @param {string} url - The URL of the PGRest server.
+   * @param {string} url - The URL to the PGRest server.
    * @param {string} clientID - The client ID for authentication.
    * @param {string} clientSecret - The client secret for authentication.
    * @param {string} [connection="default"] - The name of the connection configured in PGRest.
@@ -49,7 +49,8 @@ export class PGRestClient {
 
     const authToken = await this.#createAuthToken(body);
     const startTime = performance.now();
-    const response = await fetch(this.#url, {
+    const queryEndpoint = this.#getQueryEndpoint();
+    const response = await fetch(queryEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -120,6 +121,10 @@ export class PGRestClient {
    */
   async #signKey(key, body) {
     return crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  }
+
+  #getQueryEndpoint() {
+    return `${this.#url}${this.#url.endsWith('/') ? '' : '/'}api/query`;
   }
 
   /**

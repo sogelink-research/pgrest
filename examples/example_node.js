@@ -1,8 +1,6 @@
-//const { PGRestClient } = require('./pgrest_js_client/pgrest_client.mjs');
-
 import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
 
-const url = "http://localhost:8080/api/query";
+const url = "http://localhost:8080/";
 const clientID = "pgrest";
 const clientSecret = "98265691-8b9e-44dc-acf9-94610c392c00";
 const connection = "default"; // default can be omitted
@@ -36,5 +34,4 @@ function logError(error) {
     }
 }
 
-// Run the test
 test();
