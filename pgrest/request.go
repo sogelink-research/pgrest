@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// RequestBody represents the structure of the incoming JSON payload
-type RequestBody struct {
+// QueryRequestBody represents the structure of the incoming JSON payload
+type QueryRequestBody struct {
 	Connection string     `json:"connection"`
 	Query      string     `json:"query"`
 	Format     FormatType `json:"format,omitempty"`
@@ -19,12 +19,12 @@ const (
 	DataArrayFormat FormatType = "dataArray"
 )
 
-// UnmarshalJSON unmarshals the JSON data into the RequestBody struct.
+// UnmarshalJSON unmarshals the JSON data into the QueryRequestBody struct.
 // It sets default values for Connections and Format fields if they are empty.
 // It also validates the Format field and returns an error if it is not a supported format.
-func (rb *RequestBody) UnmarshalJSON(data []byte) error {
+func (rb *QueryRequestBody) UnmarshalJSON(data []byte) error {
 	// Create a secondary type to avoid recursion
-	type Alias RequestBody
+	type Alias QueryRequestBody
 	aux := &struct {
 		*Alias
 	}{
