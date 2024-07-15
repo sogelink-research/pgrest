@@ -20,7 +20,7 @@ import (
 // It takes in the HTTP response writer, the HTTP request, the database connection configuration,
 // and the request body containing the query to be executed.
 // It returns an error if there was an issue connecting to the database or executing the query.
-func QueryHandler(w http.ResponseWriter, r *http.Request, connection ConnectionConfig, body RequestBody) error {
+func QueryHandler(w http.ResponseWriter, r *http.Request, connection *ConnectionConfig, body *QueryRequestBody) error {
 	pool, err := GetDBPool(connection.Name, connection.ConnectionString)
 	if err != nil {
 		return NewAPIError(http.StatusInternalServerError, fmt.Sprintf("Error connecting to database: %v", connection.Name), nil)
