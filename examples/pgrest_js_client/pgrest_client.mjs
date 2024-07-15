@@ -91,6 +91,8 @@ export class PGRestClient {
 
   /**
    * Imports the key used for HMAC signing.
+   * 
+   * @private
    * @returns {Promise<CryptoKey>} A promise that resolves to the imported key.
    */
   async #importKey() {
@@ -122,6 +124,13 @@ export class PGRestClient {
     return crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
   }
 
+  /**
+   * Returns the query endpoint URL for the specified connection.
+   *
+   * @private
+   * @param {string} connection - The connection name.
+   * @returns {string} The query endpoint URL.
+   */
   #getQueryEndpoint(connection) {
     return `${this.#url}${this.#url.endsWith('/') ? '' : '/'}api/${connection}/query`;
   }
@@ -129,6 +138,7 @@ export class PGRestClient {
   /**
    * Formats the execution time duration.
    *
+   * @private
    * @param {number} duration - The duration of the execution time in milliseconds.
    * @returns {string} The formatted execution time duration.
    */
