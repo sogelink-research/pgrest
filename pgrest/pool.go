@@ -17,8 +17,8 @@ var (
 	cleanupInterval = 1 * time.Minute                // Interval to check for idle pools
 )
 
-// init is a special Go function that is automatically called before the main function.
-// It is used to perform initialization tasks.
+// init is called before the main function.
+// It starts a goroutine to periodically clean up idle database connection pools.
 func init() {
 	go periodicCleanup()
 }

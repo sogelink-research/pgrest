@@ -2,6 +2,7 @@ package pgrest
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -15,6 +16,19 @@ var configFile = getConfigLocation()
 type Config struct {
 	PGRest      PGRestConfig       `json:"pgrest"`
 	Connections []ConnectionConfig `json:"connections"`
+}
+
+// getConnectionConfig retrieves the connection configuration for the given name.
+// It searches through the list of connections in the Config object and returns
+// the ConnectionConfig if found, otherwise it returns an error.
+func (c Config) getConnectionConfig(name string) (*ConnectionConfig, error) {
+	for _, conn := range c.Connections {
+		if conn.Name == name {
+			return &conn, nil
+		}
+	}
+
+	return nil, fmt.Errorf("connection %s not found", name)
 }
 
 type PGRestConfig struct {

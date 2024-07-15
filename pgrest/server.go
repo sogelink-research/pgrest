@@ -21,55 +21,51 @@ func StartServer(config Config) {
 	defer CloseDBPools()
 
 	log.Info(fmt.Sprintf("PGRest started, running on port %v", config.PGRest.Port))
-	http.Handle("/", mainHandler(QueryHandler, config))
+
+	endpoints := map[string]http.HandlerFunc{
+		"/api/query": authHandler(QueryHandler, config),
+	}
+
+	for endpoint, handler := range endpoints {
+		http.HandleFunc(endpoint, handler)
+	}
+
+	// Handle not found routes
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		details := fmt.Sprintf("Path '%s' not found", r.URL.Path)
+		error := NewAPIError(http.StatusNotFound, "Not found", &details)
+		handleError(w, error)
+	})
+
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", config.PGRest.Port), nil))
 }
 
-// mainHandler is a HTTP handler function that wraps the provided handler function
+// authHandler is a HTTP handler function that wraps the provided handler function
 // and performs various checks and validations before executing the handler.
 // It checks the request method, validates the authorization header, decodes the
 // incoming JSON payload, finds the requested database connection, checks if the
 // user has access to the database, checks if the request is allowed from the origin,
 // and finally executes the provided handler function.
-func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConfig, RequestBody) error, config Config) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func authHandler(handler func(http.ResponseWriter, *http.Request, *ConnectionConfig, *QueryRequestBody) error, config Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		preflight := handleCORS(w, r, config.PGRest.CORS)
 		if preflight {
 			return
 		}
 
-		/* if r.Method == http.MethodOptions {
-			handleCORSPreflight(w)
-			return
-		} */
-
-		// Read the request body
-		body, err := io.ReadAll(r.Body)
+		// Get the request body data
+		bodyString, requestBody, err := getBodyData(r)
 		if err != nil {
-			http.Error(w, "Failed to read request body", http.StatusBadRequest)
-			return
-		}
-
-		// Reset the request body with the original data
-		r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-		var requestBody RequestBody
-
-		// Decode the incoming JSON payload
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			details := err.Error()
-			apiError := NewAPIError(http.StatusBadRequest, "Invalid request body", &details)
-			handleError(w, apiError)
+			handleError(w, err)
 			return
 		}
 
 		// Find the requested database connection
-		var connection ConnectionConfig
-		for _, c := range config.Connections {
-			if c.Name == requestBody.Connection {
-				connection = c
-				break
-			}
+		connection, err := config.getConnectionConfig(requestBody.Connection)
+		if err != nil {
+			apiError := NewAPIError(http.StatusBadRequest, fmt.Sprintf("Requested connection '%s' not found", requestBody.Connection), nil)
+			handleError(w, apiError)
+			return
 		}
 
 		// if connection auth is public, handle the request without authentication
@@ -99,7 +95,7 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 		}
 
 		// Validate the auth token
-		generatedToken := getHMACToken(string(body), user.ClientSecret)
+		generatedToken := getHMACToken(*bodyString, user.ClientSecret)
 		if generatedToken != token {
 			apiError := NewAPIError(http.StatusUnauthorized, "Invalid token", nil)
 			handleError(w, apiError)
@@ -126,10 +122,9 @@ func mainHandler(handler func(http.ResponseWriter, *http.Request, ConnectionConf
 
 		err = handler(w, r, connection, requestBody)
 		if err != nil {
-			log.Errorf("Error handling request: %v", err)
 			handleError(w, err)
 		}
-	})
+	}
 }
 
 // handleCORS sets the appropriate Access-Control-Allow-Origin header based on the configuration.
@@ -156,11 +151,7 @@ func getAuthHeader(r *http.Request) (string, string, error) {
 	}
 
 	headerParts := strings.Split(authHeader, " ")
-	if len(headerParts) != 2 {
-		return "", "", NewAPIError(http.StatusUnauthorized, "Invalid Authorization header", nil)
-	}
-
-	if headerParts[0] != "Bearer" {
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 		return "", "", NewAPIError(http.StatusUnauthorized, "Invalid Authorization header", nil)
 	}
 
@@ -177,9 +168,34 @@ func getAuthHeader(r *http.Request) (string, string, error) {
 	return credentials[0], credentials[1], nil
 }
 
+// getBodyData reads the request body from the provided http.Request and returns the body data as a string,
+// along with the decoded JSON payload as a QueryRequestBody struct.
+// If there is an error reading the request body or decoding the JSON payload, an APIError is returned.
+// The request body is reset with the original data before returning.
+func getBodyData(r *http.Request) (*string, *QueryRequestBody, error) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, nil, NewAPIError(http.StatusBadRequest, "Failed to read request body", nil)
+	}
+	bodyString := string(body)
+
+	// Reset the request body with the original data
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	var requestBody QueryRequestBody
+
+	// Decode the incoming JSON payload
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		details := err.Error()
+		return nil, nil, NewAPIError(http.StatusBadRequest, "Invalid request body", &details)
+	}
+
+	return &bodyString, &requestBody, nil
+}
+
 // getConnectionUser returns the UserConfig associated with the given client ID and API key from the provided ConnectionConfig.
 // If no matching user is found, it returns nil.
-func getConnectionUser(clientID string, connection ConnectionConfig) *UserConfig {
+func getConnectionUser(clientID string, connection *ConnectionConfig) *UserConfig {
 	for _, user := range connection.Users {
 		if user.ClientID == clientID {
 			return &user
@@ -203,6 +219,8 @@ func getHMACToken(message, secret string) string {
 func handleError(w http.ResponseWriter, err error) {
 	if err != nil {
 		if apiErr, ok := err.(*APIError); ok {
+			log.Errorf("Error handling request: %v", fmt.Sprintf("error: %v, details: %v", apiErr, *apiErr.Details))
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(apiErr.StatusCode)
 			json.NewEncoder(w).Encode(apiErr)
