@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
-SERVER="http://localhost:8080/api/query"
+SERVER="http://localhost:8080/api/default/query"
 CLIENTID="pgrest"
 CLIENTSECRET="98265691-8b9e-44dc-acf9-94610c392c00"
 
 # JSON payload
 read -r -d '' JSON_PAYLOAD << EOF
 {
-    "connection": "default",
     "format": "default",
     "query": "SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10"
 }

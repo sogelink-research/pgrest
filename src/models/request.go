@@ -1,4 +1,4 @@
-package pgrest
+package models
 
 import (
 	"encoding/json"

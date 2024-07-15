@@ -11,18 +11,12 @@ A simple RESTful service written in Go to proxy queries to PostgreSQL servers th
 - DataArray output option to lower transfered bytes and increase speed for lots of rows
 - Server binary size < 10MB, Docker image only 16MB
 
-## Future?
-
-- Ratelimit user
-- IP-Whitelisting
-
 ## Security notice
 
 You're opening up a way to directly query the database so make sure you handle things correctly.
 
 - Make sure the user set in the connection string has the appropriate operation and access rights for configured clients.
 - Ensure to keep your `clientSecret` confidential to prevent unauthorized access to a database.
-
 
 ## Usage
 
@@ -31,8 +25,9 @@ You're opening up a way to directly query the database so make sure you handle t
 Download dependencies and start PGRest
 
 ```sh
+cd src
 go mod download
-go run main.go
+go run ./cmd/app/main.go
 ```
 
 ### Docker
@@ -63,7 +58,7 @@ To make it easier to use PGRest a JS Client can be found under `./examples/pgres
 import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
 
 const client = new PGRestClient(
-  "http://localhost:8080/api/query", 
+  "http://localhost:8080", 
   "pgrest",
   "98265691-8b9e-44dc-acf9-94610c392c00", 
   "default"
@@ -72,16 +67,14 @@ const client = new PGRestClient(
 const result = await client.query("SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10");
 ```
 
-
 ## Query
 
 Send a post request to pgrest
 
-### Post
+### (POST) /api/{connection}/query
 
 ```json
 {
-    "connection": "default",
     "query": "SELECT station_id, temperature, humidity, wind_speed FROM weather_station_measurement WHERE station_id = 1",
     "format": "default"
 }
@@ -89,7 +82,6 @@ Send a post request to pgrest
 
 |property|description|default|
 |-|-|-|
-|connection|the name of the connection, configured in the config|default|
 |query|The query to run|-|
 |format|The response format ['default', 'dataArray']|default|
 
@@ -105,7 +97,7 @@ See `examples/curl_example.sh` for an example how to request using curl.
 
 # PGRest Configuration Guide
 
-This document provides an overview of the configuration settings for PGRest as defined in the `./config/pgrest.conf` file. PGRest tries to load the config file from `./config/pgrest.conf` by default and `/root/config/pgrest.conf` for docker. The path to the config file can be set using the environment variable `PGREST_CONFIG_PATH`
+This document provides an overview of the configuration settings for PGRest as defined in the `./config/pgrest.conf` file. PGRest tries to load the config file from `../config/pgrest.conf` by default and `/root/config/pgrest.conf` for docker. The path to the config file can be set using the environment variable `PGREST_CONFIG_PATH`
 
 ## Example
 
@@ -125,12 +117,15 @@ This document provides an overview of the configuration settings for PGRest as d
       "name": "default",
       "connectionString": "postgres://readonly_user:readonly_password@pgrest-test-db:5432/postgres",
       "auth": "private",
-      "users": [
-        {
-          "clientId": "pgrest",
-          "clientSecret": "98265691-8b9e-44dc-acf9-94610c392c00"
-        },
-        ...
+    },
+    ...
+  ],
+  "users": [
+    {
+      "clientId": "pgrest",
+      "clientSecret": "98265691-8b9e-44dc-acf9-94610c392c00",
+      "connections": [
+        "default"
       ]
     },
     ...
@@ -161,9 +156,10 @@ This section defines the database connections that PGRest can use.
 - **connectionString**: The connection string used to connect to the PostgreSQL database.
 - **auth**: (Do not use!, leave out or set to private) Can be set to public to ignore Authorization: Authorization header/user access will not be checked. Default private.
 
-#### Users
+### Users
 
-Defines the users who can access this connection.
+Defines the list of users.
 
 - **clientId**: Identifier for the client.
 - **clientSecret**: A secret key for the client, will not be send between client/server.
+- **connections**: An array of connection names where a user has access to.

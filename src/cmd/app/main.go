@@ -3,12 +3,13 @@ package main
 import (
 	"os"
 
-	"github.com/sogelink-research/pgrest/pgrest"
+	"github.com/sogelink-research/pgrest/server"
+	"github.com/sogelink-research/pgrest/settings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func initLogger(config pgrest.Config) {
+func initLogger(config settings.Config) {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 	if config.PGRest.Debug {
@@ -22,12 +23,12 @@ func initLogger(config pgrest.Config) {
 }
 
 func main() {
-	err := pgrest.InitializeConfig()
+	err := settings.InitializeConfig()
 	if err != nil {
 		log.Fatalf("Failed to initialize configuration: %v", err)
 	}
 
-	config := pgrest.GetConfig()
+	config := settings.GetConfig()
 	initLogger(config)
-	pgrest.StartServer(config)
+	server.StartServer(config)
 }

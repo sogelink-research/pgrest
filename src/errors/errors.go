@@ -1,4 +1,4 @@
-package pgrest
+package errors
 
 import "net/http"
 

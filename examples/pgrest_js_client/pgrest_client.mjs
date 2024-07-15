@@ -37,19 +37,18 @@ export class PGRestClient {
     {
       connection = this.#connection,
       format = "default",
-      encoding = "gzip, deflate, br",
+      encoding = "gzip, br",
       executionTimeFormatter = undefined,
     } = {}
   ) {
     const body = JSON.stringify({
-      connection: connection,
       query: query,
       format: format,
     });
 
     const authToken = await this.#createAuthToken(body);
     const startTime = performance.now();
-    const queryEndpoint = this.#getQueryEndpoint();
+    const queryEndpoint = this.#getQueryEndpoint(connection);
     const response = await fetch(queryEndpoint, {
       method: "POST",
       headers: {
@@ -123,8 +122,8 @@ export class PGRestClient {
     return crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
   }
 
-  #getQueryEndpoint() {
-    return `${this.#url}${this.#url.endsWith('/') ? '' : '/'}api/query`;
+  #getQueryEndpoint(connection) {
+    return `${this.#url}${this.#url.endsWith('/') ? '' : '/'}api/${connection}/query`;
   }
 
   /**

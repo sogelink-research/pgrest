@@ -1,4 +1,4 @@
-package pgrest
+package settings
 
 import (
 	"encoding/json"
@@ -16,12 +16,14 @@ var configFile = getConfigLocation()
 type Config struct {
 	PGRest      PGRestConfig       `json:"pgrest"`
 	Connections []ConnectionConfig `json:"connections"`
+	Users       []UserConfig       `json:"users"`
+	UsersLookup map[string]UserConfig
 }
 
 // getConnectionConfig retrieves the connection configuration for the given name.
 // It searches through the list of connections in the Config object and returns
 // the ConnectionConfig if found, otherwise it returns an error.
-func (c Config) getConnectionConfig(name string) (*ConnectionConfig, error) {
+func (c Config) GetConnectionConfig(name string) (*ConnectionConfig, error) {
 	for _, conn := range c.Connections {
 		if conn.Name == name {
 			return &conn, nil
@@ -38,15 +40,15 @@ type PGRestConfig struct {
 }
 
 type ConnectionConfig struct {
-	Name             string       `json:"name"`
-	Auth             string       `json:"auth"`
-	ConnectionString string       `json:"connectionString"`
-	Users            []UserConfig `json:"users"`
+	Name             string `json:"name"`
+	Auth             string `json:"auth"`
+	ConnectionString string `json:"connectionString"`
 }
 
 type UserConfig struct {
-	ClientID     string `json:"clientId"`
-	ClientSecret string `json:"clientSecret"`
+	ClientID     string   `json:"clientId"`
+	ClientSecret string   `json:"clientSecret"`
+	Connections  []string `json:"connections"`
 }
 
 type CorsConfig struct {
@@ -57,7 +59,7 @@ type CorsConfig struct {
 
 // isOriginAllowed checks if the provided origin is allowed based on the CorsConfig settings.
 // It returns true if the origin is allowed, otherwise false.
-func (c CorsConfig) isOriginAllowed(v string) bool {
+func (c CorsConfig) IsOriginAllowed(v string) bool {
 	if c.AllowOrigins[0] == "*" {
 		return true
 	}
@@ -70,15 +72,15 @@ func (c CorsConfig) isOriginAllowed(v string) bool {
 	return false
 }
 
-func (c CorsConfig) getAllowOriginsString() string {
+func (c CorsConfig) GetAllowOriginsString() string {
 	return strings.Join(c.AllowOrigins, ", ")
 }
 
-func (c CorsConfig) getAllowHeadersString() string {
+func (c CorsConfig) GetAllowHeadersString() string {
 	return strings.Join(c.AllowHeaders, ", ")
 }
 
-func (c CorsConfig) getAllowMethodsString() string {
+func (c CorsConfig) GetAllowMethodsString() string {
 	return strings.Join(c.AllowMethods, ", ")
 }
 
@@ -88,7 +90,7 @@ func (c CorsConfig) getAllowMethodsString() string {
 func getConfigLocation() string {
 	location := os.Getenv("PGREST_CONFIG_PATH")
 	if location == "" {
-		location = "./config/pgrest.conf"
+		location = "../config/pgrest.conf"
 	}
 	return location
 }
@@ -154,6 +156,11 @@ func loadConfig() error {
 		} else if conn.Auth != "public" {
 			log.Warnf("Auth for connection '%s' set to public.", conn.Name)
 		}
+	}
+
+	config.UsersLookup = make(map[string]UserConfig)
+	for _, user := range config.Users {
+		config.UsersLookup[user.ClientID] = user
 	}
 
 	return nil

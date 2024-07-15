@@ -1,4 +1,4 @@
-package pgrest
+package database
 
 import (
 	"context"
