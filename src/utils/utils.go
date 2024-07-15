@@ -3,7 +3,7 @@ package utils
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"github.com/sogelink-research/pgrest/errors"
 )
 
@@ -23,12 +23,11 @@ func Contains(slice []string, str string) bool {
 // If the connection name is not found or empty, it returns an error.
 // The error returned is of type APIError with a status code of http.StatusBadRequest and a message indicating the absence of the connection name in the request.
 func GetConnectionNameFromRequest(r *http.Request) (string, error) {
-	vars := mux.Vars(r)
-	connectionName := vars["connection"]
+	connection := chi.URLParam(r, "connection")
 
-	if connectionName == "" {
+	if connection == "" {
 		return "", errors.NewAPIError(http.StatusBadRequest, "Connection name not found in request", nil)
 	}
 
-	return connectionName, nil
+	return connection, nil
 }

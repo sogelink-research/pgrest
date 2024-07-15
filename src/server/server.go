@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
+	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 	"github.com/sogelink-research/pgrest/api/handlers"
 	"github.com/sogelink-research/pgrest/api/middleware"
@@ -18,17 +17,18 @@ import (
 // It initializes the necessary resources, sets up the main handler,
 // and listens for incoming HTTP requests on the specified port.
 func StartServer(conf settings.Config) {
-	router := mux.NewRouter()
+	router := chi.NewRouter()
 
 	// Add routes
-	router.HandleFunc("/api/{connection}/query", handlers.QueryHandler(conf)).Methods("POST")
-
-	// Add middleware
-	router.Use(middleware.CORSMiddleware(conf.PGRest.CORS))
-	router.Use(middleware.AuthMiddleware(conf))
+	router.Route("/api/{connection}/query", func(r chi.Router) {
+		// Add middleware
+		r.Use(middleware.CORSMiddleware(conf.PGRest.CORS))
+		r.Use(middleware.AuthMiddleware(conf))
+		r.Post("/", handlers.QueryHandler(conf))
+	})
 
 	// Handle not found routes
-	router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		details := fmt.Sprintf("Path '%s' not found", r.URL.Path)
 		error := errors.NewAPIError(http.StatusNotFound, "Not found", &details)
 		handlers.HandleError(w, error)

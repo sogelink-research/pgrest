@@ -54,7 +54,7 @@ export class PGRestClient {
       headers: {
         "Content-Type": "application/json",
         "Accept-Encoding": encoding,
-        Authorization: `Bearer ${authToken}`,
+        "Authorization": `Bearer ${authToken}`,
       },
       body: body,
     });
