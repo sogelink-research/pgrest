@@ -8,9 +8,6 @@ A simple RESTful service written in Go to proxy queries to PostgreSQL servers th
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sogelink-research/pgrest?filename=.%2Fsrc%2Fgo.mod)
 ![GitHub repo size](https://img.shields.io/github/repo-size/sogelink-research/pgrest)
 
-
-
-
 ## Features
 
 - Supports multiple postgres sources to query
@@ -119,7 +116,8 @@ This document provides an overview of the configuration settings for PGRest as d
       "allowOrigins": ["*"],
       "allowHeaders": ["*"],
       "allowMethods": ["POST", "OPTIONS"]
-    }
+    },
+    "maxConcurrentRequests": 15
   },
   "connections": [
     {
@@ -150,7 +148,7 @@ The configuration for PGRest is structured into two main sections: `pgrest` and 
 
 - **port**: The port on which PGRest will listen for incoming requests. Defaults to `8080`.
 - **debug**: This flag controls the log level, if set to false log level defaults to `info`. Defaults to false.
-- **cores**: Cross-Origin Resource Sharing settings.
+- **cors**: Cross-Origin Resource Sharing settings.
   - **allowOrigins**: Specifies the origins that are allowed to access. Default ["*"]
   - **allowHeaders**: Specifies the allowed headers. Default ["*"]
   - **allowMethods**: Specifies the allowed methods. Default ["OPTIONS", "POST"]
