@@ -30,5 +30,5 @@ func main() {
 
 	config := settings.GetConfig()
 	initLogger(config)
-	server.StartServer(config)
+	server.Start(config)
 }
