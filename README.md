@@ -154,6 +154,7 @@ The configuration for PGRest is structured into two main sections: `pgrest` and 
   - **allowOrigins**: Specifies the origins that are allowed to access. Default ["*"]
   - **allowHeaders**: Specifies the allowed headers. Default ["*"]
   - **allowMethods**: Specifies the allowed methods. Default ["OPTIONS", "POST"]
+- **maxConcurrentRequests**: Limits number of currently processed requests at a time across all users. Defatul 15.
 
 ### Connections
 

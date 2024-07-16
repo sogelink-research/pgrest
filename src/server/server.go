@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	chim "github.com/go-chi/chi/v5/middleware"
 	log "github.com/sirupsen/logrus"
 	"github.com/sogelink-research/pgrest/api/handlers"
 	"github.com/sogelink-research/pgrest/api/middleware"
@@ -68,6 +69,9 @@ func Start(config settings.Config) {
 // The router is configured with the provided `config` settings.
 func createRouter(config settings.Config) http.Handler {
 	router := chi.NewRouter()
+	router.Use(chim.Recoverer)
+	router.Use(chim.Throttle(config.PGRest.MaxConcurrentRequests))
+
 	router.NotFound(handlers.NotFoundHandler)
 	router.Route("/api/{connection}/query", func(r chi.Router) {
 		r.Use(middleware.CORSMiddleware(config.PGRest.CORS))

@@ -34,9 +34,10 @@ func (c Config) GetConnectionConfig(name string) (*ConnectionConfig, error) {
 }
 
 type PGRestConfig struct {
-	Port  int        `json:"port"`
-	Debug bool       `json:"debug"`
-	CORS  CorsConfig `json:"cors"`
+	Port                  int        `json:"port"`
+	Debug                 bool       `json:"debug"`
+	CORS                  CorsConfig `json:"cors"`
+	MaxConcurrentRequests int        `json:"maxConcurrentRequests"`
 }
 
 type ConnectionConfig struct {
@@ -127,9 +128,12 @@ func loadConfig() error {
 		return err
 	}
 
-	// Set default values if necessary
 	if config.PGRest.Port == 0 {
 		config.PGRest.Port = 8080
+	}
+
+	if config.PGRest.MaxConcurrentRequests == 0 {
+		config.PGRest.MaxConcurrentRequests = 15
 	}
 
 	// if debug is not set, default to false
