@@ -2,6 +2,15 @@
 
 A simple RESTful service written in Go to proxy queries to PostgreSQL servers that are not connected to the internet.  
 
+![GitHub License](https://img.shields.io/github/license/sogelink-research/pgrest) 
+![GitHub Release](https://img.shields.io/github/v/release/sogelink-research/pgrest)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sogelink-research/pgrest/docker-publish.yml) 
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sogelink-research/pgrest?filename=.%2Fsrc%2Fgo.mod)
+![GitHub repo size](https://img.shields.io/github/repo-size/sogelink-research/pgrest)
+
+
+
+
 ## Features
 
 - Supports multiple postgres sources to query
