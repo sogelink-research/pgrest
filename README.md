@@ -56,28 +56,30 @@ docker compose up --build
 
 Under `./examples` some examples on how to use PGRest can be found for `curl`, `node` and `javascript`.
 
-### JS client
+### PGRest JS client
 
-To make it easier to use PGRest a JS Client can be found under `./examples/pgrest_js_client/pgrest_client.mjs` This is a simple client that helps creating and setting the Authorization token.
+A basic JS Client can be found under `./examples/pgrest_js_client/pgrest_client.mjs` This is a simple client that helps creating and setting the Authorization token and sending a query to PGRest.
 
 ```js
 import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
 
 const client = new PGRestClient(
-  "http://localhost:8080", 
-  "pgrest",
-  "98265691-8b9e-44dc-acf9-94610c392c00", 
-  "default"
+  "http://localhost:8080", //Host
+  "pgrest", //Client ID
+  "98265691-8b9e-44dc-acf9-94610c392c00", //Client Secret
+  "default" //Connection name, can be left out if name is default
 );
 
 const result = await client.query("SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10");
 ```
 
-## Query
+## Endpoints
 
-Send a post request to pgrest
+### Query
 
-### (POST) /api/{connection}/query
+Run a query on a connection trough PGRest.
+
+**(POST) /api/{connection}/query**
 
 ```json
 {
@@ -89,7 +91,7 @@ Send a post request to pgrest
 |property|description|default|
 |-|-|-|
 |query|The query to run|-|
-|format|The response format ['default', 'dataArray']|default|
+|format|The response format, one of these options ['default', 'dataArray']|default|
 
 ### Authorization
 
