@@ -21,6 +21,7 @@ func QueryPostgres(query string, connection *settings.ConnectionConfig) (pgx.Row
 	}
 
 	rows, err := pool.Query(context.Background(), query)
+	
 	if err != nil {
 		errorMessage := fmt.Sprintf("%v", err.Error())
 		return nil, nil, errors.NewAPIError(http.StatusBadRequest, "Error executing query", &errorMessage)

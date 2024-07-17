@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,69 +25,91 @@ import (
 // It returns an error if there was an issue connecting to the database or executing the query.
 func QueryHandler(config settings.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		connectionName, err := utils.GetConnectionNameFromRequest(r)
-		if err != nil {
-			HandleError(w, err)
+		doneChan := make(chan struct{})
+		go func() {
+			defer close(doneChan)
+
+			connectionName, err := utils.GetConnectionNameFromRequest(r)
+			if err != nil {
+				HandleError(w, err)
+				return
+			}
+
+			// Find the requested database connection
+			connection, err := config.GetConnectionConfig(connectionName)
+			if err != nil {
+				apiError := errors.NewAPIError(http.StatusBadRequest, fmt.Sprintf("Requested connection '%s' not found", connectionName), nil)
+				HandleError(w, apiError)
+				return
+			}
+
+			body, err := getBodyData(r)
+			if err != nil {
+				HandleError(w, err)
+				return
+			}
+
+			rows, columns, err := service.QueryPostgres(body.Query, connection)
+			if err != nil {
+				HandleError(w, err)
+				return
+			}
+
+			defer rows.Close()
+
+			w.Header().Set("Content-Type", "application/json")
+			var encoder *json.Encoder
+			var writer io.Writer
+
+			// Use buffered writer for more efficient I/O
+			const bufferSize = 64 * 1024 // 64 KB
+			bw := bufio.NewWriterSize(w, bufferSize)
+			defer bw.Flush()
+
+			acceptEncoding := r.Header.Get("Accept-Encoding")
+			if strings.Contains(acceptEncoding, "br") {
+				w.Header().Set("Content-Encoding", "br")
+				brWriter := brotli.NewWriterLevel(bw, brotli.DefaultCompression)
+				defer brWriter.Close()
+				writer = brWriter
+				encoder = json.NewEncoder(brWriter)
+			} else if strings.Contains(acceptEncoding, "gzip") {
+				w.Header().Set("Content-Encoding", "gzip")
+				var gz *gzip.Writer
+				gz, _ = gzip.NewWriterLevel(bw, gzip.DefaultCompression)
+				defer gz.Close()
+				writer = gz
+				encoder = json.NewEncoder(gz)
+			} else {
+				writer = bw
+				encoder = json.NewEncoder(bw)
+			}
+
+			switch body.Format {
+			case models.DefaultFormat:
+				handleFormatDefault(rows, columns, writer, encoder)
+			case models.DataArrayFormat:
+				handleFormatDataArray(rows, columns, writer, encoder)
+			default:
+				handleFormatDefault(rows, columns, writer, encoder)
+			}
+
+		}()
+
+		select {
+		case <-r.Context().Done():
+			err := r.Context().Err()
+			if err == context.Canceled {
+				fmt.Printf("Canceled\n")
+				w.WriteHeader(http.StatusRequestTimeout)
+				w.Write([]byte("Canceled\n"))
+			} else if err == context.DeadlineExceeded {
+				fmt.Printf("Processing too slow\n")
+				w.WriteHeader(http.StatusGatewayTimeout)
+				w.Write([]byte("Processing too slow\n"))
+			}
 			return
-		}
-
-		// Find the requested database connection
-		connection, err := config.GetConnectionConfig(connectionName)
-		if err != nil {
-			apiError := errors.NewAPIError(http.StatusBadRequest, fmt.Sprintf("Requested connection '%s' not found", connectionName), nil)
-			HandleError(w, apiError)
-			return
-		}
-
-		body, err := getBodyData(r)
-		if err != nil {
-			HandleError(w, err)
-			return
-		}
-
-		rows, columns, err := service.QueryPostgres(body.Query, connection)
-		if err != nil {
-			HandleError(w, err)
-			return
-		}
-
-		defer rows.Close()
-
-		w.Header().Set("Content-Type", "application/json")
-		var encoder *json.Encoder
-		var writer io.Writer
-
-		// Use buffered writer for more efficient I/O
-		const bufferSize = 64 * 1024 // 64 KB
-		bw := bufio.NewWriterSize(w, bufferSize)
-		defer bw.Flush()
-
-		acceptEncoding := r.Header.Get("Accept-Encoding")
-		if strings.Contains(acceptEncoding, "br") {
-			w.Header().Set("Content-Encoding", "br")
-			brWriter := brotli.NewWriterLevel(bw, brotli.DefaultCompression)
-			defer brWriter.Close()
-			writer = brWriter
-			encoder = json.NewEncoder(brWriter)
-		} else if strings.Contains(acceptEncoding, "gzip") {
-			w.Header().Set("Content-Encoding", "gzip")
-			var gz *gzip.Writer
-			gz, _ = gzip.NewWriterLevel(bw, gzip.DefaultCompression)
-			defer gz.Close()
-			writer = gz
-			encoder = json.NewEncoder(gz)
-		} else {
-			writer = bw
-			encoder = json.NewEncoder(bw)
-		}
-
-		switch body.Format {
-		case models.DefaultFormat:
-			handleFormatDefault(rows, columns, writer, encoder)
-		case models.DataArrayFormat:
-			handleFormatDataArray(rows, columns, writer, encoder)
-		default:
-			handleFormatDefault(rows, columns, writer, encoder)
+		case <-doneChan:
 		}
 	}
 }

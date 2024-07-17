@@ -71,6 +71,7 @@ func createRouter(config settings.Config) http.Handler {
 	router := chi.NewRouter()
 	router.Use(chim.Recoverer)
 	router.Use(chim.Throttle(config.PGRest.MaxConcurrentRequests))
+	router.Use(chim.Timeout(30 * time.Millisecond))
 
 	router.NotFound(handlers.NotFoundHandler)
 	router.Route("/api/{connection}/query", func(r chi.Router) {
@@ -80,4 +81,10 @@ func createRouter(config settings.Config) http.Handler {
 	})
 
 	return router
+}
+
+func TimeoutHandler(timeout time.Duration) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.TimeoutHandler(next, timeout, "Timeout.")
+	}
 }

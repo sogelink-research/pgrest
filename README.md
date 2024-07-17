@@ -28,7 +28,7 @@ You're opening up a way to directly query the database so make sure you handle t
 
 ### Local development
 
-Download dependencies and start PGRest
+Download dependencies and start PGRest.
 
 ```sh
 cd src
