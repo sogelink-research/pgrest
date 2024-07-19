@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -46,7 +45,7 @@ func AuthMiddleware(config settings.Config) func(http.Handler) http.Handler {
 			}
 
 			// Get the request body data
-			bodyString, err := getBody(r)
+			bodyString, err := utils.GetBodyString(r)
 			if err != nil {
 				handlers.HandleError(w, err)
 				return
@@ -122,19 +121,6 @@ func getAuthHeader(r *http.Request) (string, string, error) {
 	}
 
 	return credentials[0], credentials[1], nil
-}
-
-// getBody reads the body of an HTTP request and returns it as a string.
-func getBody(r *http.Request) (string, error) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return "", errors.NewAPIError(http.StatusBadRequest, "Failed to read request body", nil)
-	}
-
-	// Reset the request body to the original state
-	r.Body = io.NopCloser(strings.NewReader(string(body)))
-
-	return string(body), nil
 }
 
 // getHMACToken generates an HMAC token for the given message using the provided secret.

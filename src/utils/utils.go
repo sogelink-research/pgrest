@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sogelink-research/pgrest/errors"
@@ -30,4 +32,17 @@ func GetConnectionNameFromRequest(r *http.Request) (string, error) {
 	}
 
 	return connection, nil
+}
+
+// getBody reads the body of an HTTP request and returns it as a string.
+func GetBodyString(r *http.Request) (string, error) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return "", errors.NewAPIError(http.StatusBadRequest, "Failed to read request body", nil)
+	}
+
+	// Reset the request body to the original state
+	r.Body = io.NopCloser(strings.NewReader(string(body)))
+
+	return string(body), nil
 }
