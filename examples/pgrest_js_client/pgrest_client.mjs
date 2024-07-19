@@ -103,23 +103,23 @@ export class PGRestClient {
     const formats = {
       json: {
         contentType: "application/json",
-        handler: this.#handleJSONResponse,
+        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleJSONResponse(result, duration, executionTimeFormatter) },
       },
       jsonDataArray: {
         contentType: "application/json",
-        handler: this.#handleJSONResponse,
+        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleJSONResponse(result, duration, executionTimeFormatter) },
       },
       arrow: {
         contentType: "application/vnd.apache.arrow.stream",
-        handler: this.#handleArrowResponse,
+        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleArrowResponse(result, duration, executionTimeFormatter) },
       },
       parquet: {
         contentType: "application/octet-stream",
-        handler: this.#handleParquetResponse,
+        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleParquetResponse(result, duration, executionTimeFormatter) },
       },
       csv: {
         contentType: "text/csv",
-        handler: this.#handleCSVResponse,
+        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleCSVResponse(result, duration, executionTimeFormatter) },
       },
     };
 
