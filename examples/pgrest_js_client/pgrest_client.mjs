@@ -3,6 +3,7 @@ export class PGRestClient {
   #clientID;
   #clientSecret;
   #connection;
+  #outputFormats;
   #_importKey;
 
   /**
@@ -18,6 +19,7 @@ export class PGRestClient {
     this.#clientID = clientID;
     this.#clientSecret = clientSecret;
     this.#connection = connection;
+    this.#outputFormats = this.#getOutputFormats();
   }
 
   /**
@@ -26,7 +28,7 @@ export class PGRestClient {
    * @param {string} query - The query string to execute.
    * @param {object} options - The options for the query.
    * @param {string} [options.connection] - The connection to use for the query. Defaults to the client's connection.
-   * @param {string} [options.format="default"] - The format of the response. Defaults to "default". Options ["default", "dataArray"].
+   * @param {string} [options.format="json, jsonDataArray, csv, arrow, parquet"] - The format of the response. Defaults to "default". Options ["json", "jsonDataArray", "csv", "arrow", "parquet"].
    * @param {string} [options.encoding="gzip, br"] - The encoding to use for the response. Defaults to "gzip, br".
    * @param {function} [options.executionTimeFormatter] - A function to format the execution time. Defaults to the client's formatter.
    * @returns {Promise<object>} - A promise that resolves to the response from the server.
@@ -36,42 +38,117 @@ export class PGRestClient {
     query,
     {
       connection = this.#connection,
-      format = "default",
+      format = "json",
       encoding = "gzip, br",
       executionTimeFormatter = undefined,
     } = {}
   ) {
+    if (!this.#outputFormats[format]) {
+      throw new Error(`Invalid format: ${format}`);
+    }
+
     const body = JSON.stringify({
       query: query,
       format: format,
     });
-
-    const authToken = await this.#createAuthToken(body);
+    const contentType = this.#outputFormats[format].contentType;
     const startTime = performance.now();
     const queryEndpoint = this.#getQueryEndpoint(connection);
-    const response = await fetch(queryEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept-Encoding": encoding,
-        "Authorization": `Bearer ${authToken}`,
-      },
-      body: body,
-    });
+    const response = await this.#post(
+      queryEndpoint,
+      contentType,
+      encoding,
+      body
+    );
     const endTime = performance.now();
     const duration = endTime - startTime;
 
-    const jsonResponse = await response.json();
+    if (!response.ok) {
+      const error = await response.json();
+      throw error;
+    }
+
+    return await this.#outputFormats[format].handler(
+      response,
+      duration,
+      executionTimeFormatter
+    );
+  }
+
+  async #handleJSONResponse(result, duration, executionTimeFormatter) {
+    const jsonResponse = await result.json();
     jsonResponse.executionTime = executionTimeFormatter
       ? executionTimeFormatter(duration)
       : this.#formatExecutionTime(duration);
 
-    // if status is not 200, throw an error
-    if (!response.ok) {
-      throw jsonResponse;
-    }
-
     return jsonResponse;
+  }
+
+  async #handleArrowResponse(result, duration, executionTimeFormatter) {
+    const arrowData = await result.arrayBuffer();
+    return arrowData;
+  }
+
+  async #handleCSVResponse(result, duration, executionTimeFormatter) {
+    const csvData = await result.text();
+    return csvData;
+  }
+
+  async #handleParquetResponse(result, duration, executionTimeFormatter) {
+    const parquetData = await result.arrayBuffer();
+    return parquetData;
+  }
+
+  #getOutputFormats() {
+    const formats = {
+      json: {
+        contentType: "application/json",
+        handler: this.#handleJSONResponse,
+      },
+      jsonDataArray: {
+        contentType: "application/json",
+        handler: this.#handleJSONResponse,
+      },
+      arrow: {
+        contentType: "application/vnd.apache.arrow.stream",
+        handler: this.#handleArrowResponse,
+      },
+      parquet: {
+        contentType: "application/octet-stream",
+        handler: this.#handleParquetResponse,
+      },
+      csv: {
+        contentType: "text/csv",
+        handler: this.#handleCSVResponse,
+      },
+    };
+
+    return formats;
+  }
+
+  /**
+   * Sends a POST request to the specified query endpoint.
+   *
+   * @private
+   * @param {string} queryEndpoint - The URL of the query endpoint.
+   * @param {string} contentType - The content type of the request body.
+   * @param {string} encoding - The encoding type of the request.
+   * @param {string} body - The request body.
+   * @returns {Promise<Response>} - A promise that resolves to the response of the POST request.
+   */
+  async #post(queryEndpoint, contentType, encoding, body) {
+    const authToken = await this.#createAuthToken(body);
+    const response = await fetch(queryEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": contentType,
+        "Accept-Encoding": encoding,
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: body,
+    });
+
+    return response;
   }
 
   /**
@@ -91,7 +168,7 @@ export class PGRestClient {
 
   /**
    * Imports the key used for HMAC signing.
-   * 
+   *
    * @private
    * @returns {Promise<CryptoKey>} A promise that resolves to the imported key.
    */
@@ -132,7 +209,9 @@ export class PGRestClient {
    * @returns {string} The query endpoint URL.
    */
   #getQueryEndpoint(connection) {
-    return `${this.#url}${this.#url.endsWith('/') ? '' : '/'}api/${connection}/query`;
+    return `${this.#url}${
+      this.#url.endsWith("/") ? "" : "/"
+    }api/${connection}/query`;
   }
 
   /**

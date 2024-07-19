@@ -15,8 +15,11 @@ type QueryRequestBody struct {
 type FormatType string
 
 const (
-	DefaultFormat   FormatType = "default"
-	DataArrayFormat FormatType = "dataArray"
+	JSONFormat          FormatType = "json"
+	JSONDataArrayFormat FormatType = "jsonDataArray"
+	ArrowFormat         FormatType = "arrow"
+	ParquetFormat       FormatType = "parquet"
+	CSVFormat           FormatType = "csv"
 )
 
 // UnmarshalJSON unmarshals the JSON data into the QueryRequestBody struct.
@@ -43,10 +46,14 @@ func (rb *QueryRequestBody) UnmarshalJSON(data []byte) error {
 
 	// Set the default value if Format is empty
 	if rb.Format == "" {
-		rb.Format = DefaultFormat
-	} else if rb.Format != DefaultFormat && rb.Format != DataArrayFormat {
-		return fmt.Errorf(fmt.Sprintf("invalid format type '%s', supported formats: 'default', 'dataArray'", rb.Format))
+		rb.Format = JSONFormat
+	} else if !isValidFormat(rb.Format) {
+		return fmt.Errorf("invalid format type '%s', supported formats: 'json', 'jsonDataArray'", rb.Format)
 	}
 
 	return nil
+}
+
+func isValidFormat(format FormatType) bool {
+	return format == JSONFormat || format == JSONDataArrayFormat || format == ArrowFormat || format == CSVFormat || format == ParquetFormat
 }
