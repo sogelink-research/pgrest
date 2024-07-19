@@ -1,48 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PGRest JS Example</title>
-    
-</head>
-<body>
+    <script src="https://cdn.jsdelivr.net/npm/apache-arrow@16.0.0/Arrow.es2015.min.js"></script>
+  </head>
+  <body>
     <h1>Check log for result</h1>
     <script type="module">
-        import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
-        
-        const url = "http://localhost:8080/";
-        const clientID = "pgrest";
-        const clientSecret = "98265691-8b9e-44dc-acf9-94610c392c00";
-        const query = "SELECT entity_id, date_timestamp, temperature FROM datacore.knmi_historical_weather_measurement limit 10";
-        const client = new PGRestClient(url, clientID, clientSecret);
+      import { PGRestClient } from "./pgrest_js_client/pgrest_client.mjs";
 
-        async function test() {
-            try {
-                const result = await client.query(query);
-                logResult(result);
-            } catch (error) {
-                console.log("An error occurred while executing the query:", error);
-                logError(error);
-            }
+      const url = "http://localhost:8080/";
+      const clientID = "pgrest";
+      const clientSecret = "98265691-8b9e-44dc-acf9-94610c392c00";
+      const query =
+        "SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 50";
+      const client = new PGRestClient(url, clientID, clientSecret);
+
+      async function testJSON() {
+        try {
+          const result = await client.query(query);
+          console.table(result.data);
+          console.log(`Execution time: ${result.executionTime}`);
+        } catch (error) {
+          logError(error);
         }
+      }
 
-        function logResult(result) {
-            console.table(result.data);
-            console.log(`Execution time: ${result.executionTime}`);
+      async function testCSV() {
+        try {
+          const result = await client.query(query, { format: "csv" });
+          console.log(result);
+        } catch (error) {
+          logError(error);
         }
+      }
 
-        function logError(error) {
-            console.error("--------------------------------");
-            console.error(`${error.status} - ${error.statusText}`);
-            console.error("--------------------------------");
-            console.error(`Message: ${error.error}`);
-            if(error.details) {
-                console.error(`Details: ${error.details}`);
-            }
+      async function testParquet() {
+        try {
+          const result = await client.query(query, { format: "parquet" });
+          console.log(result);
+        } catch (error) {
+          logError(error);
         }
+      }
 
-        test();
+      async function testArrow() {
+        try {
+          const result = await client.query(query, {
+            format: "arrow",
+          });
+
+          const table = Arrow.tableFromIPC(result);
+          console.log("Row count: ", table.numRows);
+          console.log(table.get(10).toJSON());
+        } catch (error) {
+          logError(error);
+        }
+      }
+
+      function logError(error) {
+        console.log("An error occurred while executing the query:", error);
+        console.error("--------------------------------");
+        console.error(`${error.status} - ${error.statusText}`);
+        console.error("--------------------------------");
+        console.error(`Message: ${error.error}`);
+        if (error.details) {
+          console.error(`Details: ${error.details}`);
+        }
+      }
+
+      testJSON();
+      //testArrow();
+      //testParquet();
+      //testCSV();
     </script>
-</body>
+  </body>
 </html>
