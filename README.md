@@ -78,6 +78,17 @@ const client = new PGRestClient(
 const result = await client.query("SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10");
 ```
 
+Optional parameters can be passed to client.query
+
+```js
+const result = await client.query("my awesome query", {
+  connection: "default",
+  format: "parquet",
+  encoding: "gzip, br",
+  executionTimeFormatter: (duration) => { return `${duration} ms` }
+});
+```
+
 ## Endpoints
 
 ### Query
@@ -155,12 +166,12 @@ The configuration for PGRest is structured into two main sections: `pgrest` and 
 ### PGRest Settings
 
 - **port**: The port on which PGRest will listen for incoming requests. Defaults to `8080`.
-- **debug**: This flag controls the log level, if set to false log level defaults to `info`. Defaults to false.
+- **debug**: This flag controls the log level, if set to false log level defaults to `info`. Default false.
 - **cors**: Cross-Origin Resource Sharing settings.
   - **allowOrigins**: Specifies the origins that are allowed to access. Default ["*"]
   - **allowHeaders**: Specifies the allowed headers. Default ["*"]
   - **allowMethods**: Specifies the allowed methods. Default ["OPTIONS", "POST"]
-- **maxConcurrentRequests**: Limits number of currently processed requests at a time across all users. Defatul 15.
+- **maxConcurrentRequests**: Limits number of currently processed requests at a time across all users. Default 15.
 - **timeoudtimeoutSecondsS**: The amount of seconds before a request times out.
 
 ### Connections
