@@ -70,7 +70,6 @@ func Start(config settings.Config) {
 // The router is configured with the provided `config` settings.
 func createRouter(config settings.Config) http.Handler {
 	router := chi.NewRouter()
-
 	router.Use(middleware.Logger("router", log.StandardLogger(), logrus.DebugLevel))
 	router.Use(chimiddleware.Recoverer)
 	router.Use(chimiddleware.Throttle(config.PGRest.MaxConcurrentRequests))
@@ -81,6 +80,13 @@ func createRouter(config settings.Config) http.Handler {
 		r.Use(middleware.CORSMiddleware(config.PGRest.CORS))
 		r.Use(middleware.AuthMiddleware(config))
 		r.Post("/", handlers.QueryHandler(config))
+	})
+
+	startTime := time.Now()
+	router.Route("/status", func(r chi.Router) {
+		r.Use(middleware.CORSMiddleware(config.PGRest.CORS))
+		r.Use(chimiddleware.NoCache)
+		r.Get("/", handlers.StatusHandler(startTime))
 	})
 
 	return router
