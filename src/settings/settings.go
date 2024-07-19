@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -38,6 +39,7 @@ type PGRestConfig struct {
 	Debug                 bool       `json:"debug"`
 	CORS                  CorsConfig `json:"cors"`
 	MaxConcurrentRequests int        `json:"maxConcurrentRequests"`
+	Timeout               int        `json:"timeout"`
 }
 
 type ConnectionConfig struct {
@@ -123,7 +125,10 @@ func loadConfig() error {
 		return err
 	}
 
-	err = json.Unmarshal(byteValue, &config)
+	// Preprocess the JSON to remove excessive commas
+	cleanedJSON := cleanJSON(string(byteValue))
+
+	err = json.Unmarshal([]byte(cleanedJSON), &config)
 	if err != nil {
 		return err
 	}
@@ -134,6 +139,10 @@ func loadConfig() error {
 
 	if config.PGRest.MaxConcurrentRequests == 0 {
 		config.PGRest.MaxConcurrentRequests = 15
+	}
+
+	if config.PGRest.Timeout == 0 {
+		config.PGRest.Timeout = 30
 	}
 
 	// if debug is not set, default to false
@@ -168,6 +177,15 @@ func loadConfig() error {
 	}
 
 	return nil
+}
+
+func cleanJSON(input string) string {
+	// Remove trailing commas before closing braces and brackets
+	re := regexp.MustCompile(`,\s*([\]}])`)
+	cleaned := re.ReplaceAllString(input, "$1")
+	// Ensure that there are no consecutive commas
+	cleaned = strings.ReplaceAll(cleaned, ",,", ",")
+	return cleaned
 }
 
 // GetConfig returns the current configuration.
