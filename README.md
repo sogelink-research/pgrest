@@ -14,8 +14,13 @@ A simple RESTful service written in Go to proxy queries to PostgreSQL servers th
 - Hash-Based Message Authentication
 - Brotli and GZIP compression support
 - Streaming response to keep memory footprint low
-- DataArray output option to lower transfered bytes and increase speed for lots of rows
 - Server binary size < 10MB, Docker image only 16MB
+- Output formats
+  - JSON
+  - JSONDataArray
+  - CSV
+  - Apache Arrow (Experimental)
+  - Parquet (Experimental)
 
 ## Security notice
 
@@ -84,14 +89,14 @@ Run a query on a connection trough PGRest.
 ```json
 {
     "query": "SELECT station_id, temperature, humidity, wind_speed FROM weather_station_measurement WHERE station_id = 1",
-    "format": "default"
+    "format": "json"
 }
 ```
 
 |property|description|default|
 |-|-|-|
 |query|The query to run|-|
-|format|The response format, one of these options ['default', 'dataArray']|default|
+|format|The response format, one of these options ['json', 'jsonDataArray', 'csv', 'arrow', 'parquet']|json|
 
 ### Authorization
 
@@ -119,7 +124,8 @@ This document provides an overview of the configuration settings for PGRest as d
       "allowHeaders": ["*"],
       "allowMethods": ["POST", "OPTIONS"]
     },
-    "maxConcurrentRequests": 15
+    "maxConcurrentRequests": 15,
+    "timeoudtimeoutSecondsS": 30
   },
   "connections": [
     {
@@ -155,6 +161,7 @@ The configuration for PGRest is structured into two main sections: `pgrest` and 
   - **allowHeaders**: Specifies the allowed headers. Default ["*"]
   - **allowMethods**: Specifies the allowed methods. Default ["OPTIONS", "POST"]
 - **maxConcurrentRequests**: Limits number of currently processed requests at a time across all users. Defatul 15.
+- **timeoudtimeoutSecondsS**: The amount of seconds before a request times out.
 
 ### Connections
 
