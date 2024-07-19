@@ -83,7 +83,7 @@ func createRouter(config settings.Config) http.Handler {
 	})
 
 	startTime := time.Now()
-	router.Route("/status", func(r chi.Router) {
+	router.Route("/api/status", func(r chi.Router) {
 		r.Use(middleware.CORSMiddleware(config.PGRest.CORS))
 		r.Use(chimiddleware.NoCache)
 		r.Get("/", handlers.StatusHandler(startTime))

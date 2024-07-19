@@ -109,7 +109,7 @@ Run a query on a connection trough PGRest.
 |query|The query to run|-|
 |format|The response format, one of these options ['json', 'jsonDataArray', 'csv', 'arrow', 'parquet']|json|
 
-### Authorization
+#### Authorization
 
 Authorization on the server side utilizes a custom authentication scheme based on the Authorization header with a Bearer token. The token is structured as a base64-encoded string clientId.token, where the token is a SHA-256 HMAC (encoded in base64) generated from the POST body using the clientSecret as the key. When a connection is configured with `"auth": "public"` authorization is skipped, use with cause!.
 
@@ -118,6 +118,22 @@ Authorization: Bearer <base64(clientId.token)>
 ```
 
 See `examples/curl_example.sh` for an example how to request using curl.
+
+### Status
+
+Check the status of the server, can be used as health check.
+
+**(GET) /api/status**
+
+Returns 200/ok with JSON content
+
+```json
+{
+  "status": "ok",
+  "started": "2024-07-18 14:56:24.474895508 +0000 UTC",
+  "uptime": "1d 02h 12m 31s"
+}
+```
 
 # PGRest Configuration Guide
 
