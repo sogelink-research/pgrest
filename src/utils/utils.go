@@ -35,14 +35,14 @@ func GetConnectionNameFromRequest(r *http.Request) (string, error) {
 }
 
 // getBody reads the body of an HTTP request and returns it as a string.
-func GetBodyString(r *http.Request) (string, error) {
+func GetBodyString(r *http.Request) string {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return "", errors.NewAPIError(http.StatusBadRequest, "Failed to read request body", nil)
+		return ""
 	}
 
 	// Reset the request body to the original state
 	r.Body = io.NopCloser(strings.NewReader(string(body)))
 
-	return string(body), nil
+	return string(body)
 }

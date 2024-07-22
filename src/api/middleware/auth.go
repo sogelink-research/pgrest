@@ -6,7 +6,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sogelink-research/pgrest/api/handlers"
 	"github.com/sogelink-research/pgrest/errors"
@@ -45,11 +47,23 @@ func AuthMiddleware(config settings.Config) func(http.Handler) http.Handler {
 			}
 
 			// Get the request body data
-			bodyString, err := utils.GetBodyString(r)
+			bodyString := utils.GetBodyString(r)
+
+			// Get the request time
+			requestTime, err := getRequestTimeHeader(r)
 			if err != nil {
 				handlers.HandleError(w, err)
 				return
 			}
+
+			// Check if the request time is within the allowed time frame
+			if !IsRequestTimeValid(requestTime) {
+				apiError := errors.NewAPIError(http.StatusUnauthorized, "Request time is not valid", nil)
+				handlers.HandleError(w, apiError)
+				return
+			}
+
+			content := fmt.Sprintf("%s%s", bodyString, requestTime)
 
 			// Get the Authorization header
 			clientID, token, err := getAuthHeader(r)
@@ -67,7 +81,7 @@ func AuthMiddleware(config settings.Config) func(http.Handler) http.Handler {
 			}
 
 			// Validate the auth token
-			generatedToken := getHMACToken(bodyString, user.ClientSecret)
+			generatedToken := getHMACToken(content, user.ClientSecret)
 			if generatedToken != token {
 				apiError := errors.NewAPIError(http.StatusUnauthorized, "Invalid token", nil)
 				handlers.HandleError(w, apiError)
@@ -123,10 +137,38 @@ func getAuthHeader(r *http.Request) (string, string, error) {
 	return credentials[0], credentials[1], nil
 }
 
+func getRequestTimeHeader(r *http.Request) (string, error) {
+	timestamp := r.Header.Get("X-Request-Time")
+	if timestamp == "" {
+		return "", errors.NewAPIError(http.StatusUnauthorized, "Missing X-Request-Time header", nil)
+	}
+	return timestamp, nil
+}
+
 // getHMACToken generates an HMAC token for the given message using the provided secret.
 // It uses the SHA256 hashing algorithm and encodes the resulting hash in base64 format.
 func getHMACToken(message, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(message))
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+}
+
+// IsRequestTimeValid checks if the request time is valid.
+// It compares the request time with the current time and returns true if the request time is within 0 to 2 minutes.
+// The request time should be provided as a string in Unix timestamp format.
+// Returns true if the request time is valid, otherwise returns false.
+func IsRequestTimeValid(requestTime string) bool {
+	current := time.Now().Unix()
+	reqTime, err := strconv.ParseInt(requestTime, 10, 64)
+	if err != nil {
+		return false
+	}
+
+	// check if request time is within 0 to 1 minute
+	timeDiff := current - reqTime
+	if timeDiff < 0 || timeDiff > 60 {
+		return false
+	}
+
+	return true
 }

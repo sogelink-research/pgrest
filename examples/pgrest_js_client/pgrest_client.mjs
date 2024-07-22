@@ -137,12 +137,14 @@ export class PGRestClient {
    * @returns {Promise<Response>} - A promise that resolves to the response of the POST request.
    */
   async #post(queryEndpoint, contentType, encoding, body) {
-    const authToken = await this.#createAuthToken(body);
+    let currentTime = Math.floor(Date.now() / 1000);
+    const authToken = await this.#createAuthToken(body, currentTime);
     const response = await fetch(queryEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": contentType,
         "Accept-Encoding": encoding,
+        'X-Request-Time': currentTime,
         Authorization: `Bearer ${authToken}`,
       },
       body: body,
@@ -156,11 +158,13 @@ export class PGRestClient {
    *
    * @private
    * @param {Object} body - The body used to generate the token.
+   * @param {Object} time - Unix timestamp in seconds.
    * @returns {string} The generated authentication token.
    */
-  async #createAuthToken(body) {
+  async #createAuthToken(body, time) {
     const key = await this.#importKey();
-    const signature = await this.#signKey(key, body);
+    const content = body ? body + time : time;
+    const signature = await this.#signKey(key, content);
     const hmac = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
     return btoa(`${this.#clientID}.${hmac}`);

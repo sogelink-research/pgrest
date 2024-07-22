@@ -18,7 +18,7 @@ func Logger(category string, logger logrus.FieldLogger, level logrus.Level) func
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			t1 := time.Now()
 			body := ""
-			body, _ = utils.GetBodyString(r)
+			body = utils.GetBodyString(r)
 
 			defer func() {
 				remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
