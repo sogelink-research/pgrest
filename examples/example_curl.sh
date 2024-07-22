@@ -3,11 +3,12 @@
 SERVER="http://localhost:8080/api/default/query"
 CLIENTID="pgrest"
 CLIENTSECRET="98265691-8b9e-44dc-acf9-94610c392c00"
+UNIX_TIMESTAMP=$(date +%s)
 
 # JSON payload
 read -r -d '' JSON_PAYLOAD << EOF
 {
-    "format": "default",
+    "format": "json",
     "query": "SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10"
 }
 EOF
@@ -15,12 +16,13 @@ EOF
 # Function to calculate HMAC signature
 calculate_hmac_sha256() {
     local message="$1"
-    local secret="$2"
-    echo -n "$message" | openssl dgst -sha256 -hmac "$secret" -binary | base64
+    local timestamp="$2"
+    local secret="$3"
+    echo -n "$message$timestamp" | openssl dgst -sha256 -hmac "$secret" -binary | base64
 }
 
 # Create HMAC signature
-HMAC=$(calculate_hmac_sha256 "$JSON_PAYLOAD" "$CLIENTSECRET")
+HMAC=$(calculate_hmac_sha256 "$JSON_PAYLOAD" "$UNIX_TIMESTAMP" "$CLIENTSECRET")
 
 # Create Authorization header
 AUTH_HEADER=$(echo -n "${CLIENTID}.${HMAC}" | base64)
@@ -29,5 +31,6 @@ AUTH_HEADER=$(echo -n "${CLIENTID}.${HMAC}" | base64)
 time curl -X POST "$SERVER" \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer $AUTH_HEADER" \
+-H "X-Request-Time: $UNIX_TIMESTAMP" \
 -d "$JSON_PAYLOAD" \
 --compressed
