@@ -21,6 +21,6 @@
   },
   "homepage": "https://github.com/sogelink-research/pgrest#readme",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
+    "registry": "https://registry.npmjs.org"
   }
 }
