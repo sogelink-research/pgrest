@@ -1,4 +1,4 @@
-import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
+import { PGRestClient } from './pgrest_js_client/pgrest_client.js';
 
 const url = "http://localhost:8080/";
 const clientID = "pgrest";
