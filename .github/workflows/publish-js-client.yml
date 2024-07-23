@@ -29,16 +29,6 @@ jobs:
       - name: Install dependencies
         working-directory: ./clients/js
         run: npm install
-        
-      - name: Bump version
-        working-directory: ./clients/js
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          npm version patch -m "Upgrade to %s"
-          git push origin main --tags
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to NPM
         working-directory: ./clients/js
