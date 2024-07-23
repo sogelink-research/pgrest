@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'client/pgrest-client.js'
+      - 'clients/js/pgrest-client.js'
 
 jobs:
   publish:
@@ -20,11 +20,11 @@ jobs:
           node-version: '16'
 
       - name: Install dependencies
-        working-directory: ./client
+        working-directory: ./clients/js
         run: npm install
         
       - name: Bump version
-        working-directory: ./client
+        working-directory: ./clients/js
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
@@ -34,7 +34,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to GitHub Packages
-        working-directory: ./client
+        working-directory: ./clients/js
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
