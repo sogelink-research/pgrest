@@ -1,0 +1,26 @@
+{
+  "name": "@sogelink-research/pgrest-client",
+  "version": "1.2.0",
+  "description": "Simple JS client for PGRest",
+  "main": "pgrest-client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sogelink-research/pgrest.git"
+  },
+  "keywords": [
+    "pgrest",
+    "postgresql"
+  ],
+  "author": "Tim Ebben",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sogelink-research/pgrest/issues"
+  },
+  "homepage": "https://github.com/sogelink-research/pgrest#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  }
+}
