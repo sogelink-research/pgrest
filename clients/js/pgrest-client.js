@@ -12,7 +12,7 @@ export class PGRestClient {
    * @param {string} url - The URL to the PGRest server.
    * @param {string} clientID - The client ID for authentication.
    * @param {string} clientSecret - The client secret for authentication.
-   * @param {string} [connection="default"] - The name of the connection configured in PGRest.
+   * @param {string} [connection="default"] - The name of the connection to use, Default: default.
    */
   constructor(url, clientID, clientSecret, connection = "default") {
     this.#url = url;
