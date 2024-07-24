@@ -9,13 +9,13 @@
   <body>
     <h1>Check log for result</h1>
     <script type="module">
-      import { PGRestClient } from "./pgrest_js_client/pgrest_client.js";
+      import { PGRestClient } from 'https://cdn.jsdelivr.net/npm/@sogelink-research/pgrest-client@latest/dist/pgrest-client.esm.js';
 
       const url = "http://localhost:8080/";
       const clientID = "pgrest";
       const clientSecret = "98265691-8b9e-44dc-acf9-94610c392c00";
       const query =
-        "SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 50";
+        "SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10";
       const client = new PGRestClient(url, clientID, clientSecret);
 
       async function testJSON() {
