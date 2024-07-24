@@ -4,10 +4,19 @@ import { terser } from 'rollup-plugin-terser';
 
 export default {
   input: 'index.js',
-  output: {
-    file: 'dist/pgrest-client.esm.js',
-    format: 'esm',
-  },
+  output: [
+    {
+      file: 'dist/pgrest-client.esm.js',
+      format: 'esm',
+      sourcemap: true,
+    },
+    {
+      file: 'dist/pgrest-client.amd.js',
+      format: 'amd',
+      name: 'PGRestClient',
+      sourcemap: true,
+    },
+  ],
   plugins: [
     resolve(),
     commonjs(),
