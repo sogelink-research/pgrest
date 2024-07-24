@@ -59,7 +59,7 @@ docker compose up --build
 
 ### Examples
 
-Under `./examples` some examples on how to use PGRest can be found for `curl`, `node` and `javascript`.
+Under `./examples` some examples on how to use PGRest can be found for `curl`, `node` and `html`.
 
 ### PGRest JS client
 
