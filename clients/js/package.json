@@ -1,8 +1,9 @@
 {
   "name": "@sogelink-research/pgrest-client",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Simple JS client for PGRest",
   "main": "src/index.js",
+  "type": "module",
   "module": "dist/pgrest-client.esm.js",
   "files": [
     "dist/pgrest-client.esm.js"
