@@ -63,31 +63,7 @@ Under `./examples` some examples on how to use PGRest can be found for `curl`, `
 
 ### PGRest JS client
 
-A basic JS Client can be found under `./examples/pgrest_js_client/pgrest_client.mjs` This is a simple client that helps creating and setting the Authorization token and sending a query to PGRest.
-
-```js
-import { PGRestClient } from './pgrest_js_client/pgrest_client.mjs';
-
-const client = new PGRestClient(
-  "http://localhost:8080", //Host
-  "pgrest", //Client ID
-  "98265691-8b9e-44dc-acf9-94610c392c00", //Client Secret
-  "default" //Connection name, can be left out if name is default
-);
-
-const result = await client.query("SELECT entity_id, date_timestamp, temperature, humidity, wind_direction, precipitation FROM weather WHERE entity_id = 2 ORDER BY date_timestamp desc limit 10");
-```
-
-Optional parameters can be passed to client.query
-
-```js
-const result = await client.query("my awesome query", {
-  connection: "default",
-  format: "parquet",
-  encoding: "gzip, br",
-  executionTimeFormatter: (duration) => { return `${duration} ms` }
-});
-```
+A basic Javascript Client can be installed from [NPM](https://www.npmjs.com/package/@sogelink-research/pgrest-client) or loaded from jsDelivr, information on usage can be found in the [pgrest-client readme](https://github.com/sogelink-research/pgrest/tree/main/clients/js)
 
 ## Endpoints
 
@@ -111,10 +87,11 @@ Run a query on a connection trough PGRest.
 
 #### Authorization
 
-Authorization on the server side utilizes a custom authentication scheme based on the Authorization header with a Bearer token. The token is structured as a base64-encoded string clientId.token, where the token is a SHA-256 HMAC (encoded in base64) generated from the POST body using the clientSecret as the key. When a connection is configured with `"auth": "public"` authorization is skipped, use with cause!.
+Authorization on the server side utilizes a custom authentication scheme based on the Authorization header with a Bearer token. The token is structured as a base64-encoded string clientId.token, where the token is a SHA-256 HMAC (encoded in base64) generated from the POST body + UNIX timestamp using the clientSecret as the key. When a connection is configured with `"auth": "public"` authorization is skipped, use with cause!.
 
 ```
 Authorization: Bearer <base64(clientId.token)>
+X-Request-Time: <UNIX Timestamp (seconds)>
 ```
 
 See `examples/curl_example.sh` for an example how to request using curl.
