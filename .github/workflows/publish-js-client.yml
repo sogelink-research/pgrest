@@ -1,4 +1,4 @@
-name: Publish JS Client to NPM
+name: Publish PGRest JS Client to NPM
 
 on:
   push:
