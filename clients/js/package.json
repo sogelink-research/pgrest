@@ -1,8 +1,10 @@
 {
   "name": "@sogelink-research/pgrest-client",
-  "version": "1.2.4",
+  "version": "1.2.6",
   "description": "Simple JS client for PGRest",
-  "main": "src/index.js",
+  "author": "Tim Ebben",
+  "license": "MIT",
+  "main": "index.js",
   "type": "module",
   "module": "dist/pgrest-client.esm.js",
   "files": [
@@ -19,8 +21,6 @@
     "pgrest",
     "postgresql"
   ],
-  "author": "Tim Ebben",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/sogelink-research/pgrest/issues"
   },

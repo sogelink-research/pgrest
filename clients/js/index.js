@@ -1,0 +1,1 @@
+export { PGRestClient } from './src/pgrest-client.js';
