@@ -1,6 +1,6 @@
 {
   "name": "@sogelink-research/pgrest-client",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Simple JS client for PGRest",
   "author": "Tim Ebben",
   "license": "MIT",
@@ -8,7 +8,11 @@
   "type": "module",
   "module": "dist/pgrest-client.esm.js",
   "files": [
-    "dist/pgrest-client.esm.js"
+    "dist",
+    "src",
+    "index.js",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "rollup -c"
