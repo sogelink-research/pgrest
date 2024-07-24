@@ -1,6 +1,6 @@
 {
     "type": "module",
     "dependencies": {
-        "@sogelink-research/pgrest-client": "^1.2.7"
+        "@sogelink-research/pgrest-client": "^1.3.0"
     }
 }
