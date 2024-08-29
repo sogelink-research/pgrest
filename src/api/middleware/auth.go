@@ -154,7 +154,7 @@ func getHMACToken(message, secret string) string {
 }
 
 // IsRequestTimeValid checks if the request time is valid.
-// It compares the request time with the current time and returns true if the request time is within 0 to 2 minutes.
+// It compares the request time with the current time and returns true if the request time is within 5 minutes.
 // The request time should be provided as a string in Unix timestamp format.
 // Returns true if the request time is valid, otherwise returns false.
 func IsRequestTimeValid(requestTime string) bool {
@@ -164,9 +164,9 @@ func IsRequestTimeValid(requestTime string) bool {
 		return false
 	}
 
-	// check if request time is within 0 to 1 minute
+	// check if request time is within 5 minutes of the server time
 	timeDiff := current - reqTime
-	if timeDiff < 0 || timeDiff > 60 {
+	if timeDiff < -300 || timeDiff > 300 {
 		return false
 	}
 
