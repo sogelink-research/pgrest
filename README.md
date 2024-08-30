@@ -129,7 +129,7 @@ This document provides an overview of the configuration settings for PGRest as d
       "allowMethods": ["POST", "OPTIONS"]
     },
     "maxConcurrentRequests": 15,
-    "timeoudtimeoutSecondsS": 30
+    "timeoutSeconds": 30
   },
   "connections": [
     {
