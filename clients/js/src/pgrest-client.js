@@ -4,6 +4,8 @@ export class PGRestClient {
   #clientSecret;
   #connection;
   #outputFormats;
+
+  /** @type {CryptoKey | undefined} */
   #_importKey;
 
   /**
@@ -75,6 +77,11 @@ export class PGRestClient {
     );
   }
 
+  /**
+   * @param {{ json: () => any; }} result
+   * @param {number} duration
+   * @param {(arg0: any) => any} executionTimeFormatter
+   */
   async #handleJSONResponse(result, duration, executionTimeFormatter) {
     const jsonResponse = await result.json();
     jsonResponse.executionTime = executionTimeFormatter
@@ -84,42 +91,82 @@ export class PGRestClient {
     return jsonResponse;
   }
 
-  async #handleArrowResponse(result, duration, executionTimeFormatter) {
+  /**
+   * @param {{ arrayBuffer: () => any; }} result
+   */
+  async #handleArrowResponse(result) {
     const arrowData = await result.arrayBuffer();
     return arrowData;
   }
 
-  async #handleCSVResponse(result, duration, executionTimeFormatter) {
+  /**
+   * @param {{ text: () => any; }} result
+   */
+  async #handleCSVResponse(result) {
     const csvData = await result.text();
     return csvData;
   }
 
-  async #handleParquetResponse(result, duration, executionTimeFormatter) {
+  /**
+   * @param {{ arrayBuffer: () => any; }} result
+   */
+  async #handleParquetResponse(result) {
     const parquetData = await result.arrayBuffer();
     return parquetData;
   }
 
+  /**
+   * Retrieves the available output formats.
+   *
+   * @returns {Record<string, any>} The available output formats.
+   */
   #getOutputFormats() {
     const formats = {
       json: {
         contentType: "application/json",
-        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleJSONResponse(result, duration, executionTimeFormatter) },
+        handler: async (
+          /** @type {{ json: () => any; }} */ result,
+          /** @type {number} */ duration,
+          /** @type {(arg0: any) => any} */ executionTimeFormatter
+        ) => {
+          return await this.#handleJSONResponse(
+            result,
+            duration,
+            executionTimeFormatter
+          );
+        },
       },
       jsonDataArray: {
         contentType: "application/json",
-        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleJSONResponse(result, duration, executionTimeFormatter) },
+        handler: async (
+          /** @type {{ json: () => any; }} */ result,
+          /** @type {number} */ duration,
+          /** @type {(arg0: any) => any} */ executionTimeFormatter
+        ) => {
+          return await this.#handleJSONResponse(
+            result,
+            duration,
+            executionTimeFormatter
+          );
+        },
       },
       arrow: {
         contentType: "application/vnd.apache.arrow.stream",
-        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleArrowResponse(result, duration, executionTimeFormatter) },
+        handler: async (/** @type {{ arrayBuffer: () => any; }} */ result) => {
+          return await this.#handleArrowResponse(result);
+        },
       },
       parquet: {
         contentType: "application/octet-stream",
-        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleParquetResponse(result, duration, executionTimeFormatter) },
+        handler: async (/** @type {{ arrayBuffer: () => any; }} */ result) => {
+          return await this.#handleParquetResponse(result);
+        },
       },
       csv: {
         contentType: "text/csv",
-        handler: async (result, duration, executionTimeFormatter) => { return await this.#handleCSVResponse(result, duration, executionTimeFormatter) },
+        handler: async (/** @type {{ text: () => any; }} */ result) => {
+          return await this.#handleCSVResponse(result);
+        },
       },
     };
 
@@ -129,7 +176,6 @@ export class PGRestClient {
   /**
    * Sends a POST request to the specified query endpoint.
    *
-   * @private
    * @param {string} queryEndpoint - The URL of the query endpoint.
    * @param {string} contentType - The content type of the request body.
    * @param {string} encoding - The encoding type of the request.
@@ -139,14 +185,15 @@ export class PGRestClient {
   async #post(queryEndpoint, contentType, encoding, body) {
     let currentTime = Math.floor(Date.now() / 1000);
     const authToken = await this.#createAuthToken(body, currentTime);
+    const headers = new Headers();
+    headers.append("Content-Type", contentType);
+    headers.append("Accept-Encoding", encoding);
+    headers.append("X-Request-Time", currentTime.toString());
+    headers.append("Authorization", `Bearer ${authToken}`);
+
     const response = await fetch(queryEndpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": contentType,
-        "Accept-Encoding": encoding,
-        'X-Request-Time': currentTime,
-        Authorization: `Bearer ${authToken}`,
-      },
+      headers: headers,
       body: body,
     });
 
@@ -156,10 +203,9 @@ export class PGRestClient {
   /**
    * Creates an authentication token using the provided body.
    *
-   * @private
-   * @param {Object} body - The body used to generate the token.
-   * @param {Object} time - Unix timestamp in seconds.
-   * @returns {string} The generated authentication token.
+   * @param {any} body - The body used to generate the token.
+   * @param {any} time - Unix timestamp in seconds.
+   * @returns {Promise<string>} The generated authentication token.
    */
   async #createAuthToken(body, time) {
     const key = await this.#importKey();
@@ -173,7 +219,6 @@ export class PGRestClient {
   /**
    * Imports the key used for HMAC signing.
    *
-   * @private
    * @returns {Promise<CryptoKey>} A promise that resolves to the imported key.
    */
   async #importKey() {
@@ -181,7 +226,7 @@ export class PGRestClient {
       return this.#_importKey;
     }
 
-    const key = crypto.subtle.importKey(
+    const key = await crypto.subtle.importKey(
       "raw",
       new TextEncoder().encode(this.#clientSecret),
       { name: "HMAC", hash: "SHA-256" },
@@ -196,7 +241,6 @@ export class PGRestClient {
   /**
    * Signs the given body using the provided key.
    *
-   * @private
    * @param {CryptoKey} key - The key used for signing.
    * @param {string} body - The body to be signed.
    * @returns {Promise<ArrayBuffer>} - A promise that resolves to the signed data as an ArrayBuffer.
@@ -208,7 +252,6 @@ export class PGRestClient {
   /**
    * Returns the query endpoint URL for the specified connection.
    *
-   * @private
    * @param {string} connection - The connection name.
    * @returns {string} The query endpoint URL.
    */
@@ -221,7 +264,6 @@ export class PGRestClient {
   /**
    * Formats the execution time duration.
    *
-   * @private
    * @param {number} duration - The duration of the execution time in milliseconds.
    * @returns {string} The formatted execution time duration.
    */
