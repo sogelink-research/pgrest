@@ -1,10 +1,10 @@
 # pgrest
 
-A simple RESTful service written in Go to proxy queries to PostgreSQL servers that are not connected to the internet.  
+A simple RESTful service written in Go to proxy queries to PostgreSQL servers that are not connected to the internet.
 
-![GitHub License](https://img.shields.io/github/license/sogelink-research/pgrest) 
+![GitHub License](https://img.shields.io/github/license/sogelink-research/pgrest)
 ![GitHub Release](https://img.shields.io/github/v/release/sogelink-research/pgrest)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sogelink-research/pgrest/docker-publish.yml) 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/sogelink-research/pgrest/docker-publish.yml)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/sogelink-research/pgrest?filename=.%2Fsrc%2Fgo.mod)
 ![GitHub repo size](https://img.shields.io/github/repo-size/sogelink-research/pgrest)
 
@@ -75,15 +75,15 @@ Run a query on a connection trough PGRest.
 
 ```json
 {
-    "query": "SELECT station_id, temperature, humidity, wind_speed FROM weather_station_measurement WHERE station_id = 1",
-    "format": "json"
+  "query": "SELECT station_id, temperature, humidity, wind_speed FROM weather_station_measurement WHERE station_id = 1",
+  "format": "json"
 }
 ```
 
-|property|description|default|
-|-|-|-|
-|query|The query to run|-|
-|format|The response format, one of these options ['json', 'jsonDataArray', 'csv', 'arrow', 'parquet']|json|
+| property | description                                                                                    | default |
+| -------- | ---------------------------------------------------------------------------------------------- | ------- |
+| query    | The query to run                                                                               | -       |
+| format   | The response format, one of these options ['json', 'jsonDataArray', 'csv', 'arrow', 'parquet'] | json    |
 
 #### Authorization
 
@@ -165,7 +165,7 @@ The configuration for PGRest is structured into two main sections: `pgrest` and 
   - **allowHeaders**: Specifies the allowed headers. Default ["*"]
   - **allowMethods**: Specifies the allowed methods. Default ["OPTIONS", "POST"]
 - **maxConcurrentRequests**: Limits number of currently processed requests at a time across all users. Default 15.
-- **timeoudtimeoutSecondsS**: The amount of seconds before a request times out.
+- **timeoutSeconds**: The amount of seconds before a request times out.
 
 ### Connections
 
